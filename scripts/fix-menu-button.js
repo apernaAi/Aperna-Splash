@@ -11,7 +11,7 @@
 import 'dotenv/config';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const APP_URL = process.env.APP_URL || process.env.VERCEL_URL || 'https://mimi-airdrop-app.vercel.app';
+const APP_URL = process.env.APP_URL || process.env.VERCEL_URL || 'https://my-project-six-coral-29.vercel.app';
 const ACTION = process.env.ACTION || 'update'; // 'update' | 'reset' | 'get'
 
 if (!BOT_TOKEN) {

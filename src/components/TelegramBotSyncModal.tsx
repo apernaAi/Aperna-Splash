@@ -12,6 +12,7 @@ interface Props {
 
 export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, language }) => {
   const [targetUrl, setTargetUrl] = useState<string>('https://my-project-six-coral-29.vercel.app');
+  const [botToken, setBotToken] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
@@ -37,7 +38,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
     setStatusMessage(null);
     setIsSuccess(null);
 
-    const result = await syncTelegramWebhook(targetUrl);
+    const result = await syncTelegramWebhook(targetUrl, botToken);
     setIsLoading(false);
 
     if (result.ok) {
@@ -49,7 +50,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
       handleFetchStatus();
     } else {
       setIsSuccess(false);
-      setStatusMessage(result.description || 'Sync failed.');
+      setStatusMessage(result.description || 'Sync failed. Bot Token जांचें या Vercel में जोड़ें।');
     }
   };
 
@@ -59,7 +60,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
     setStatusMessage(null);
     setIsSuccess(null);
 
-    const result = await updateTelegramMenuButton(targetUrl);
+    const result = await updateTelegramMenuButton(targetUrl, botToken);
     setIsLoading(false);
 
     if (result.ok) {
@@ -71,7 +72,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
       handleFetchStatus();
     } else {
       setIsSuccess(false);
-      setStatusMessage(result.error || 'Failed to update menu button.');
+      setStatusMessage(result.error || 'Failed to update menu button. Bot Token डालें या BotFather गाइड देखें।');
     }
   };
 
@@ -81,7 +82,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
     setStatusMessage(null);
     setIsSuccess(null);
 
-    const result = await resetTelegramMenuButton();
+    const result = await resetTelegramMenuButton(botToken);
     setIsLoading(false);
 
     if (result.ok) {
@@ -177,7 +178,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
               </div>
               <p className="text-[11px] text-cyan-200/80">
                 {language === 'hi'
-                  ? 'टेलीग्राम में 2 अलग-अलग बटन होते हैं: (1) प्रोफाइल/डिस्क्रिप्शन वाला ऐप बटन, और (2) नीचे चैट बार का "Play Mimi" मेनू बटन। दोनों के लिंक अलग-अलग सेव होते हैं। नीचे दिए बटन से आप नीचे वाले मेनू बटन को तुरंत नए ताज़ा URL पर अपडेट कर सकते हैं!'
+                  ? 'टेलीग्राम में 2 अलग-अलग बटन होते हैं: (1) प्रोफाइल/डिस्क्रिप्शन वाला ऐप बटन (जो नया खुल रहा है), और (2) नीचे चैट बार का "Play Mimi" मेनू बटन (जिसमें पुराना लिंक फंसा है)। नीचे दिए बटन से आप नीचे वाले मेनू बटन को तुरंत नए ताज़ा URL से बदल सकते हैं!'
                   : 'Telegram has 2 separate buttons: the profile Mini App button and the bottom chat Menu Button. Use the action below to update the bottom Menu Button globally!'}
               </p>
             </div>
@@ -197,6 +198,24 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
                 onChange={(e) => setTargetUrl(e.target.value)}
                 placeholder="https://my-project-six-coral-29.vercel.app"
                 className="w-full rounded-xl bg-black/50 border border-cyan-400/40 px-3 py-2 text-xs font-mono text-cyan-100 placeholder-slate-500 focus:outline-none focus:border-cyan-300"
+              />
+            </div>
+
+            {/* Bot Token Input */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-cyan-200 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Bot className="w-3.5 h-3.5 text-amber-400" />
+                  {language === 'hi' ? 'Bot Token (यदि Vercel पर सेट नहीं है)' : 'Bot Token (if not in Vercel env)'}
+                </span>
+                <span className="text-[10px] text-amber-300 font-normal">BotFather टोकन</span>
+              </label>
+              <input
+                type="text"
+                value={botToken}
+                onChange={(e) => setBotToken(e.target.value)}
+                placeholder="8303474231:AAEkt9MQCnwfvUifnoBDE..."
+                className="w-full rounded-xl bg-black/50 border border-cyan-400/40 px-3 py-2 text-xs font-mono text-cyan-100 placeholder-slate-500 focus:outline-none focus:border-amber-300"
               />
             </div>
 
@@ -241,30 +260,34 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
           <div className="rounded-2xl bg-cyan-950/40 border border-cyan-400/30 p-3.5 text-xs text-cyan-100 flex flex-col gap-2.5">
             <h4 className="font-bold text-amber-300 flex items-center gap-1.5">
               <Bot className="w-4 h-4" />
-              <span>{language === 'hi' ? 'BotFather में मेनू बटन कैसे बदलें (100% पक्का तरीका)' : 'How to update via BotFather (Guaranteed)'}</span>
+              <span>{language === 'hi' ? 'BotFather में मेनू बटन ठीक करने के 3 आसान कदम:' : '3 Easy Steps in BotFather:'}</span>
             </h4>
             <ol className="list-decimal pl-4 space-y-2 text-[11px] text-cyan-200/90 leading-relaxed">
               <li>
-                Telegram में <b>@BotFather</b> चैट खोलें।
+                Telegram में <b>@BotFather</b> चैट खोलें और कमांड भेजें: <code className="bg-black/60 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/setmenubutton</code>
               </li>
               <li>
-                कमांड भेजें: <code className="bg-black/60 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/setmenubutton</code>
+                अपनी बॉट लिस्ट में से <b>@{TELEGRAM_BOT_CONFIG.botUsername}</b> पर क्लिक करें।
               </li>
               <li>
-                अपनी बॉट लिस्ट में से <b>@{TELEGRAM_BOT_CONFIG.botUsername}</b> को सेलेक्ट करें।
+                BotFather पूछेगा URL: अपना नया लिंक भेजें:<br />
+                <code className="bg-black/60 px-1.5 py-0.5 rounded text-cyan-300 font-mono text-[10px] break-all">{TELEGRAM_BOT_CONFIG.defaultVercelUrl}</code>
               </li>
               <li>
-                BotFather पूछेगा URL — वहां अपना <b>ताज़ा नया Vercel लिंक</b> पेस्ट कर दें।
+                BotFather पूछेगा:<br />
+                <i>"Send me the title to be displayed on the button instead of 'Menu'..."</i><br />
+                ⚠️ <b>यहाँ ध्यान दें:</b> <u>Title का मतलब ही बटन का 'नाम' है!</u> यहाँ लिंक नहीं भेजना, बस यह नाम टाइप करके भेजें:<br />
+                <code className="bg-black/60 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">🐱 Play Mimi 🎧</code> (या <code className="text-amber-300">Play Mimi</code>)
               </li>
               <li>
-                बटन का नाम पूछेगा — लिख दें: <code className="bg-black/60 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">🐱 Play Mimi 🎧</code>
-              </li>
-              <li>
-                ✅ बस! अब नीचे वाले बटन पर भी तुरंत नया ऐप ही खुलेगा!
+                ✅ BotFather बोलेगा: <b>Success! Menu button updated.</b>
               </li>
             </ol>
             <div className="mt-1 pt-2 border-t border-cyan-500/20 text-[11px] text-cyan-300/80">
               💡 <b>या फिर:</b> @BotFather में <code className="text-amber-300">/mybots</code> ➔ Select Bot ➔ <b>Bot Settings</b> ➔ <b>Menu Button</b> ➔ <b>Configure menu button</b> दबाकर भी बदल सकते हैं।
+            </div>
+            <div className="mt-0.5 text-[11px] text-rose-300/90">
+              🗑️ <b>अगर सिर्फ पुराना बटन हटाना है:</b> @BotFather में <code className="text-amber-300">/mybots</code> ➔ Select Bot ➔ <b>Bot Settings</b> ➔ <b>Menu Button</b> ➔ <b>Configure menu button</b> दबाकर रीसेट कर सकते हैं।
             </div>
           </div>
         )}

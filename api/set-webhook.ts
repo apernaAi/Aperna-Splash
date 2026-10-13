@@ -8,11 +8,11 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const DEFAULT_APP_URL = process.env.APP_URL || 'https://my-project-six-coral-29.vercel.app';
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
-async function callTelegram(method: string, body?: Record<string, unknown>) {
-  if (!BOT_TOKEN) {
-    throw new Error('TELEGRAM_BOT_TOKEN environment variable is not configured');
+async function callTelegramWithToken(token: string, method: string, body?: Record<string, unknown>) {
+  if (!token) {
+    throw new Error('TELEGRAM_BOT_TOKEN is not configured');
   }
-  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
@@ -36,23 +36,55 @@ export default async function handler(req: any, res: any) {
     }
   }
 
+  const activeToken = (req.query?.token || req.body?.token || BOT_TOKEN || '').toString().trim();
+
   // Token configuration check
-  if (!BOT_TOKEN) {
-    const errorMsg = 'TELEGRAM_BOT_TOKEN is missing in environment variables. Please add it in your Vercel Project Settings.';
+  if (!activeToken) {
+    const errorMsg = 'TELEGRAM_BOT_TOKEN is missing. Provide ?token=YOUR_BOT_TOKEN in URL or configure in Vercel.';
     if ((req.headers?.accept || '').includes('text/html')) {
-      return res.status(500).send(`
+      return res.status(200).send(`
         <!DOCTYPE html>
         <html>
-        <head><title>Bot Token Required</title><style>body{font-family:sans-serif;background:#030d22;color:#fca5a5;padding:2rem;text-align:center;}</style></head>
+        <head>
+          <title>Telegram Bot Sync & Menu Button Manager</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body{font-family:system-ui,sans-serif;background:#030d22;color:#f1f5f9;padding:2rem;text-align:center;max-width:600px;margin:0 auto;}
+            .card{background:#0b1b36;padding:24px;border-radius:16px;border:1px solid #1e3a8a;margin-top:20px;}
+            input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #3b82f6;background:#030d22;color:#fff;box-sizing:border-box;font-size:14px;}
+            button{background:#3b82f6;color:#fff;border:none;padding:12px 20px;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px;font-size:14px;}
+            button:hover{background:#2563eb;}
+            .reset-btn{background:#ef4444;}
+            .reset-btn:hover{background:#dc2626;}
+            .info{color:#94a3b8;font-size:13px;line-height:1.5;margin-top:16px;text-align:left;}
+          </style>
+        </head>
         <body>
-          <h2>⚠️ Security Notice: TELEGRAM_BOT_TOKEN Not Set</h2>
-          <p>Please configure <code>TELEGRAM_BOT_TOKEN</code> in your Vercel dashboard environment variables.</p>
+          <h2>🤖 Telegram Bot Menu & Webhook Tool</h2>
+          <div class="card">
+            <p style="color:#fbbf24;font-weight:600;">निचला "Play Mimi" मेनू बटन तुरंत नया करने या पुराना हटाने के लिए:</p>
+            <form method="GET" action="/api/set-webhook">
+              <input type="text" name="token" placeholder="यहाँ Bot Token डालें (जैसे: 830347...:AAE...)" required />
+              <input type="hidden" name="action" value="set_menu" />
+              <button type="submit">✨ नीचे वाला बटन नए ऐप से जोड़ें (Set Menu Button)</button>
+            </form>
+            <form method="GET" action="/api/set-webhook" style="margin-top:10px;">
+              <input type="text" name="token" placeholder="Bot Token डालें" required />
+              <input type="hidden" name="action" value="reset_menu" />
+              <button type="submit" class="reset-btn">🗑️ पुराना मेनू बटन पूरी तरह हटाएं (Reset Menu Button)</button>
+            </form>
+            <div class="info">
+              💡 <strong>नोट:</strong> टोकन BotFather से मिलता है। इस फॉर्म से एक क्लिक में Telegram सर्वर पर मेनू बटन अपडेट या रीसेट हो जाएगा!
+            </div>
+          </div>
         </body>
         </html>
       `);
     }
     return res.status(500).json({ ok: false, error: errorMsg });
   }
+
+  const callTelegram = (method: string, body?: Record<string, unknown>) => callTelegramWithToken(activeToken, method, body);
 
   try {
     const action = req.query?.action || 'set';
@@ -135,10 +167,30 @@ export default async function handler(req: any, res: any) {
       const resetMenuRes = await callTelegram('setChatMenuButton', {
         menu_button: { type: 'default' },
       });
+      if ((req.headers?.accept || '').includes('text/html')) {
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Menu Button Reset</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>body{font-family:system-ui,sans-serif;background:#030d22;color:#f1f5f9;padding:2rem;text-align:center;max-width:600px;margin:0 auto;} .card{background:#0b1b36;padding:24px;border-radius:16px;border:1px solid #ef4444;} pre{background:#010613;padding:12px;border-radius:8px;color:#fca5a5;text-align:left;}</style>
+          </head>
+          <body>
+            <div class="card">
+              <h2 style="color:#ef4444;">🗑️ पुराना मेनू बटन सफलतापूर्वक हटा दिया गया!</h2>
+              <p>Telegram सर्वर पर Menu Button डिफ़ॉल्ट पर रीसेट हो गया है।</p>
+              <pre>${JSON.stringify(resetMenuRes, null, 2)}</pre>
+              <p><a href="/api/set-webhook" style="color:#38bdf8;">वापस जाएं</a></p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
       return res.status(200).json({ ok: true, message: 'Menu button reset to default', result: resetMenuRes });
     }
 
-    // 5. Default or update_menu: Set & Verify Webhook + Sync Global Menu Button
+    // 5. Default or update_menu / set_menu: Sync Global Menu Button
     const queryUrl = req.query?.url as string;
     let baseUrl = queryUrl || DEFAULT_APP_URL;
 
@@ -162,7 +214,28 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    if (action === 'update_menu') {
+    if (action === 'update_menu' || action === 'set_menu') {
+      if ((req.headers?.accept || '').includes('text/html')) {
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Menu Button Updated</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>body{font-family:system-ui,sans-serif;background:#030d22;color:#f1f5f9;padding:2rem;text-align:center;max-width:600px;margin:0 auto;} .card{background:#0b1b36;padding:24px;border-radius:16px;border:1px solid #10b981;} pre{background:#010613;padding:12px;border-radius:8px;color:#a7f3d0;text-align:left;} a{color:#38bdf8;font-weight:bold;}</style>
+          </head>
+          <body>
+            <div class="card">
+              <h2 style="color:#10b981;">✅ निचला Play Mimi बटन ताज़ा ऐप से जुड़ गया!</h2>
+              <p>नया लिंक: <code>${cleanBaseUrl}</code></p>
+              <pre>${JSON.stringify(menuButtonRes, null, 2)}</pre>
+              <p style="color:#fbbf24;font-size:13px;">📲 <strong>ध्यान दें:</strong> Telegram ऐप में तुरंत बदलाव देखने के लिए बॉट चैट को एक बार बंद करके फिर से खोलें या Reload करें!</p>
+              <p><a href="/api/set-webhook">वापस जाएं</a></p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
       return res.status(200).json({
         ok: true,
         message: 'Telegram bottom menu button updated successfully!',
