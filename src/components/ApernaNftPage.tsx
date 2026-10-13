@@ -326,21 +326,34 @@ export const ApernaNftPage: React.FC<Props> = ({
                       <div className="text-[10px] font-mono text-cyan-300">{nft.tokenId} • {nft.rarity}</div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                    Verified
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                    nft.isRealOnChain
+                      ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                      : 'bg-amber-950/60 text-amber-300 border-amber-500/40'
+                  }`}>
+                    {nft.isRealOnChain ? '⛓️ On-Chain' : '🎮 In-App Airdrop'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-white/5">
-                  <span className="truncate mr-2">Tx: {nft.txHash.slice(0, 16)}...</span>
-                  <a
-                    href={`${POLYGON_EXPLORER}/tx/${nft.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-cyan-300 underline flex items-center gap-0.5 shrink-0"
-                  >
-                    <span>Polygonscan</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  {nft.isRealOnChain ? (
+                    <>
+                      <span className="truncate mr-2">Tx: {nft.txHash.slice(0, 16)}...</span>
+                      <a
+                        href={`${POLYGON_EXPLORER}/tx/${nft.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-cyan-300 hover:text-white underline flex items-center gap-0.5 shrink-0"
+                      >
+                        <span>Polygonscan</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-amber-200/90 truncate mr-2">Voucher: {nft.txHash}</span>
+                      <span className="text-emerald-400 font-bold shrink-0">✓ +1,000 Tokens</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

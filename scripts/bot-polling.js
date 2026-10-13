@@ -3,13 +3,8 @@
  * Run with: node scripts/bot-polling.js or npm run bot
  */
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-if (!BOT_TOKEN) {
-  console.error('❌ Error: TELEGRAM_BOT_TOKEN environment variable is not defined.');
-  console.error('Please export TELEGRAM_BOT_TOKEN="your_token" or add it to your .env file.');
-  process.exit(1);
-}
-const APP_URL = (process.env.APP_URL || 'https://mimi-airdrop-app.vercel.app').replace(/\/+$/, '');
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8939562897:AAGsNW3rSh6S1Kc2Q3coMslEtfYzDL9vJvw';
+const APP_URL = (process.env.APP_URL || 'https://my-project-six-coral-29.vercel.app').replace(/\/+$/, '');
 
 console.log('--------------------------------------------------');
 console.log('🐱 Starting Music Mimi Telegram Bot Daemon...');

@@ -6,7 +6,10 @@
  * 3. Chat Menu button initialization for the user
  */
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const ACTIVE_BOT_TOKEN = '8939562897:AAGsNW3rSh6S1Kc2Q3coMslEtfYzDL9vJvw';
+const BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN && !process.env.TELEGRAM_BOT_TOKEN.startsWith('830347'))
+  ? process.env.TELEGRAM_BOT_TOKEN
+  : ACTIVE_BOT_TOKEN;
 const DEFAULT_APP_URL = process.env.APP_URL || 'https://my-project-six-coral-29.vercel.app';
 const TELEGRAM_SECRET_TOKEN = process.env.TELEGRAM_SECRET_TOKEN;
 

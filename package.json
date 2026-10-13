@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "bot": "node scripts/bot-polling.js",
     "bot:clean-profile": "node scripts/fix-bot-profile.js",
-    "bot:fix-menu": "node scripts/fix-menu-button.js"
+    "bot:fix-menu": "node scripts/fix-menu-button.js",
+    "broadcast": "node scripts/broadcast-update.js"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
