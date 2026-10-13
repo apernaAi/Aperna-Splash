@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, language }) => {
-  const [targetUrl, setTargetUrl] = useState<string>('https://mimi-airdrop-app.vercel.app');
+  const [targetUrl, setTargetUrl] = useState<string>('https://my-project-six-coral-29.vercel.app');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
@@ -195,7 +195,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({ isOpen, onClose, languag
                 type="text"
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
-                placeholder="https://mimi-airdrop-app.vercel.app"
+                placeholder="https://my-project-six-coral-29.vercel.app"
                 className="w-full rounded-xl bg-black/50 border border-cyan-400/40 px-3 py-2 text-xs font-mono text-cyan-100 placeholder-slate-500 focus:outline-none focus:border-cyan-300"
               />
             </div>

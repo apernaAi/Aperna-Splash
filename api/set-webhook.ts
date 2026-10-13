@@ -5,7 +5,7 @@
  */
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const DEFAULT_APP_URL = process.env.APP_URL || 'https://mimi-airdrop-app.vercel.app';
+const DEFAULT_APP_URL = process.env.APP_URL || 'https://my-project-six-coral-29.vercel.app';
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 async function callTelegram(method: string, body?: Record<string, unknown>) {

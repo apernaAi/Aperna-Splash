@@ -7,7 +7,7 @@
 export const TELEGRAM_BOT_CONFIG = {
   botUsername: 'Musicmimi_bot',
   appTitle: 'Music Mimi ($MIMI)',
-  defaultVercelUrl: 'https://mimi-airdrop-app.vercel.app',
+  defaultVercelUrl: 'https://my-project-six-coral-29.vercel.app',
 };
 
 /**
