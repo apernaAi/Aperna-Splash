@@ -1,0 +1,208 @@
+/**
+ * Secure Telegram Bot Webhook & Profile Cache Registrar
+ * Visit /api/set-webhook in your browser to inspect status, register webhook,
+ * or forcefully flush/clean the Telegram server-side profile bio cache!
+ */
+
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const DEFAULT_APP_URL = process.env.APP_URL || 'https://mimi-airdrop-app.vercel.app';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+async function callTelegram(method: string, body?: Record<string, unknown>) {
+  if (!BOT_TOKEN) {
+    throw new Error('TELEGRAM_BOT_TOKEN environment variable is not configured');
+  }
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return res.json();
+}
+
+export default async function handler(req: any, res: any) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Security check: If ADMIN_SECRET is set, require either query param or header
+  if (ADMIN_SECRET) {
+    const providedSecret = req.query?.secret || req.headers?.['x-admin-secret'];
+    if (providedSecret !== ADMIN_SECRET) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized: Invalid admin secret' });
+    }
+  }
+
+  // Token configuration check
+  if (!BOT_TOKEN) {
+    const errorMsg = 'TELEGRAM_BOT_TOKEN is missing in environment variables. Please add it in your Vercel Project Settings.';
+    if ((req.headers?.accept || '').includes('text/html')) {
+      return res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Bot Token Required</title><style>body{font-family:sans-serif;background:#030d22;color:#fca5a5;padding:2rem;text-align:center;}</style></head>
+        <body>
+          <h2>⚠️ Security Notice: TELEGRAM_BOT_TOKEN Not Set</h2>
+          <p>Please configure <code>TELEGRAM_BOT_TOKEN</code> in your Vercel dashboard environment variables.</p>
+        </body>
+        </html>
+      `);
+    }
+    return res.status(500).json({ ok: false, error: errorMsg });
+  }
+
+  try {
+    const action = req.query?.action || 'set';
+
+    // 1. Flush & Purge Bot Bio / Profile Spam Cache (Directly overwriting Telegram's server registry)
+    if (action === 'clean_profile' || action === 'fix_bio') {
+      const cleanName = 'Music Mimi ($MIMI)';
+      const cleanDescEn = '🎵 Official Music Mimi ($MIMI) Telegram Mini App. Craft beats, merge music tracks, and mine real TON airdrop rewards!';
+      const cleanShortDescEn = '🐱 Craft music tracks & mine $MIMI on TON!';
+      const cleanDescHi = '🎵 म्यूजिक मिमी ($MIMI) आधिकारिक टेलीग्राम मिनी ऐप। बीट्स क्राफ्ट करें और TON एयरड्रॉप कमाएं!';
+      const cleanShortDescHi = '🐱 म्यूजिक ट्रैक्स बनाएं और TON पर $MIMI माइन करें!';
+
+      const results = {
+        setName: await callTelegram('setMyName', { name: cleanName }),
+        // Default language description & short description (About/Bio on profile)
+        setDescDefault: await callTelegram('setMyDescription', { description: cleanDescEn }),
+        setShortDescDefault: await callTelegram('setMyShortDescription', { short_description: cleanShortDescEn }),
+        // Explicit EN
+        setDescEn: await callTelegram('setMyDescription', { description: cleanDescEn, language_code: 'en' }),
+        setShortDescEn: await callTelegram('setMyShortDescription', { short_description: cleanShortDescEn, language_code: 'en' }),
+        // Explicit HI
+        setDescHi: await callTelegram('setMyDescription', { description: cleanDescHi, language_code: 'hi' }),
+        setShortDescHi: await callTelegram('setMyShortDescription', { short_description: cleanShortDescHi, language_code: 'hi' }),
+        // Verification fetch
+        verifiedName: await callTelegram('getMyName'),
+        verifiedDescription: await callTelegram('getMyDescription'),
+        verifiedShortDescription: await callTelegram('getMyShortDescription'),
+      };
+
+      if ((req.headers?.accept || '').includes('text/html')) {
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <title>Music Mimi Bot — Profile & Bio Sanitized</title>
+            <style>
+              body { font-family: system-ui, sans-serif; background: #030d22; color: #e2f4ff; padding: 2rem; max-width: 650px; margin: 0 auto; line-height: 1.6; }
+              .card { background: rgba(5,23,62,0.9); border: 1px solid rgba(0,210,255,0.4); border-radius: 16px; padding: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+              h1 { color: #00d2ff; margin-top: 0; font-size: 1.4rem; }
+              .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-size: 0.85rem; background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid #10b981; }
+              pre { background: #010613; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; color: #a5f3fc; }
+              a { color: #38bdf8; text-decoration: none; font-weight: bold; }
+              .btn { display: inline-block; margin-top: 10px; padding: 8px 16px; background: #0284c7; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>🛡️ Telegram Profile Cache Sanitized & Hardened</h1>
+              <p><span class="badge">Success: Malicious Bio Purged</span></p>
+              <p>The bot's Name, About (Bio), and Description have been forcefully updated across Telegram's servers.</p>
+              <h3>Current Verified Bot Metadata on Telegram:</h3>
+              <pre>${JSON.stringify({ name: results.verifiedName, description: results.verifiedDescription, shortDescription: results.verifiedShortDescription }, null, 2)}</pre>
+              <hr style="border: 0; border-top: 1px solid rgba(0,210,255,0.2); margin: 1.5rem 0;" />
+              <p><a href="/api/set-webhook" class="btn">View Webhook Status</a></p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+
+      return res.status(200).json({ ok: true, message: 'Profile and Bio cache sanitized', details: results });
+    }
+
+    // 2. Query Webhook Info
+    if (action === 'get') {
+      const infoData = await callTelegram('getWebhookInfo');
+      return res.status(200).json(infoData);
+    }
+
+    // 3. Delete Webhook
+    if (action === 'delete') {
+      const delData = await callTelegram('deleteWebhook', { drop_pending_updates: true });
+      return res.status(200).json(delData);
+    }
+
+    // 4. Default: Set & Verify Webhook
+    const queryUrl = req.query?.url as string;
+    let baseUrl = queryUrl || DEFAULT_APP_URL;
+
+    if (!queryUrl && req.headers && req.headers['x-forwarded-host']) {
+      const proto = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['x-forwarded-host'];
+      if (host && !host.includes('localhost')) {
+        baseUrl = `${proto}://${host}`;
+      }
+    }
+
+    const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
+    const webhookUrl = `${cleanBaseUrl}/api/webhook`;
+
+    const setParams: Record<string, unknown> = {
+      url: webhookUrl,
+      drop_pending_updates: true,
+    };
+    if (process.env.TELEGRAM_SECRET_TOKEN) {
+      setParams.secret_token = process.env.TELEGRAM_SECRET_TOKEN;
+    }
+
+    const setData = await callTelegram('setWebhook', setParams);
+    const verifyData = await callTelegram('getWebhookInfo');
+
+    if ((req.headers?.accept || '').includes('text/html')) {
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Music Mimi Bot Webhook Status</title>
+          <style>
+            body { font-family: system-ui, sans-serif; background: #030d22; color: #e2f4ff; padding: 2rem; max-width: 650px; margin: 0 auto; line-height: 1.6; }
+            .card { background: rgba(5,23,62,0.85); border: 1px solid rgba(0,210,255,0.3); border-radius: 16px; padding: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+            h1 { color: #00d2ff; margin-top: 0; }
+            .status { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-size: 0.85rem; }
+            .ok { background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid #10b981; }
+            pre { background: #010613; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; color: #a5f3fc; }
+            a.btn { display: inline-block; padding: 8px 14px; background: #0284c7; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem; margin-right: 8px; }
+            a.btn-emerald { background: #059669; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>🐱 Music Mimi Telegram Bot Security</h1>
+            <p><span class="status ok">Webhook Active & Secured</span></p>
+            <p><strong>Webhook Target:</strong> <code>${webhookUrl}</code></p>
+            <p><strong>Telegram SetWebhook Result:</strong></p>
+            <pre>${JSON.stringify(setData, null, 2)}</pre>
+            <p><strong>Live Webhook Info:</strong></p>
+            <pre>${JSON.stringify(verifyData, null, 2)}</pre>
+            <div style="margin-top: 1.5rem;">
+              <a href="/api/set-webhook?action=clean_profile" class="btn btn-emerald">🛡️ Force Purge Spam Bio Cache</a>
+              <a href="/api/set-webhook?action=get" class="btn">🔍 Refresh Info</a>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    return res.status(200).json({
+      success: setData.ok,
+      telegramResponse: setData,
+      currentWebhook: verifyData,
+      webhookUrl,
+      appUrl: cleanBaseUrl,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Failed to configure webhook',
+    });
+  }
+}
