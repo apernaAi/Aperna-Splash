@@ -67,6 +67,8 @@ export const ApernaNftMintModal: React.FC<Props> = ({
   const [showWalletHelp, setShowWalletHelp] = useState(false);
   const [firstBuyClaimed, setFirstBuyClaimed] = useState(false);
   const [lastEarnedTokens, setLastEarnedTokens] = useState<number | null>(null);
+  const [isRealOnChainTx, setIsRealOnChainTx] = useState<boolean>(false);
+  const [copiedDappUrl, setCopiedDappUrl] = useState(false);
 
   // Listing / Sale Modal State
   const [selectedNftForSale, setSelectedNftForSale] = useState<MintedNftRecord | null>(null);
@@ -109,21 +111,23 @@ export const ApernaNftMintModal: React.FC<Props> = ({
     
     // Check if MetaMask or any EVM provider is injected
     if (typeof window === 'undefined' || !(window as any).ethereum) {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
-        // Direct deep-link opens current page inside MetaMask's native Web3 in-app browser!
-        const cleanHost = window.location.host;
-        const cleanPath = window.location.pathname + window.location.search;
-        const metamaskDappUrl = `https://metamask.app.link/dapp/${cleanHost}${cleanPath}`;
+      setShowWalletHelp(true);
+      const hostUrl = typeof window !== 'undefined' ? (window.location.host || 'my-project-six-coral-29.vercel.app') : 'my-project-six-coral-29.vercel.app';
+      const pathUrl = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : '';
+      const metamaskDappUrl = `https://metamask.app.link/dapp/${hostUrl}${pathUrl}`;
+
+      const tg = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+      if (tg && typeof tg.openLink === 'function') {
+        tg.openLink(metamaskDappUrl);
+      } else if (typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         window.location.href = metamaskDappUrl;
-      } else {
-        setShowWalletHelp(true);
-        setErrorMessage(
-          language === 'hi'
-            ? 'MetaMask एक्सटेंशन नहीं मिला। आप ब्राउज़र में MetaMask जोड़ें या नीचे आसान इन-ऐप Web3 से मिंट करें।'
-            : 'MetaMask extension not found. Please install MetaMask or use 1-Click In-App Web3!'
-        );
       }
+
+      setErrorMessage(
+        language === 'hi'
+          ? 'Telegram के इन-ऐप ब्राउज़र में MetaMask एक्सटेंशन नहीं मिलता। नीचे "MetaMask गाइड" देखें या बिना किसी परेशानी के "1-Click इन-ऐप" से +1,000 टोकन मुफ्त क्लेम करें।'
+          : 'MetaMask extension not found in Telegram webview. Open via MetaMask browser or use 1-Click In-App for free +1,000 tokens!'
+      );
       setIsConnectingWallet(false);
       return;
     }
@@ -239,7 +243,7 @@ export const ApernaNftMintModal: React.FC<Props> = ({
           }],
         });
 
-        finishMintSuccess(tx, metaMaskAddress, 'Polygon Mainnet (MetaMask)');
+        finishMintSuccess(tx, metaMaskAddress, 'Polygon Mainnet (MetaMask)', true);
         return;
       } catch (err: any) {
         if (err.code === 4001 || err.message?.includes('rejected')) {
@@ -247,20 +251,27 @@ export const ApernaNftMintModal: React.FC<Props> = ({
           setErrorMessage(language === 'hi' ? 'आपने ट्रांजैक्शन कैंसिल कर दिया।' : 'Transaction cancelled by user.');
           return;
         }
-        console.warn('Real on-chain send fallback to instant verified mint:', err);
-        // Fallback to Instant Web3 Simulation so user is never stuck
+        console.warn('Real on-chain send error:', err);
+        setMintStatus('idle');
+        setErrorMessage(
+          language === 'hi' 
+            ? `ऑन-चेन ट्रांजैक्शन नहीं हो सकी (${err.message || 'नेटवर्क या गैस एरर'})। आप चाहें तो दाईं तरफ "1-Click इन-ऐप" चुनकर बिना गैस के +1,000 टोकन बोनस ले सकते हैं!` 
+            : `On-chain transaction failed: ${err.message || 'network/gas error'}. You can switch to 1-Click In-App for instant free tokens.`
+        );
+        return;
       }
     }
 
-    // Fast Seamless Instant Mint (Zero-Friction for Telegram Users)
+    // Fast Seamless In-App Airdrop Claim (100% Free Game Quest Reward)
     setTimeout(() => {
-      const generatedTx = generatePolygonTxHash();
-      finishMintSuccess(generatedTx, targetAddress, 'Polygon PoS (Instant Web3)');
-    }, 1200);
+      const claimCode = `AIRDROP-VOUCHER-${Date.now().toString().slice(-6)}`;
+      finishMintSuccess(claimCode, targetAddress, 'In-App Airdrop Reward', false);
+    }, 1000);
   };
 
-  const finishMintSuccess = (tx: string, address: string, networkName: string) => {
+  const finishMintSuccess = (tx: string, address: string, networkName: string, isRealOnChain: boolean) => {
     setMintTxHash(tx);
+    setIsRealOnChainTx(isRealOnChain);
     setMintStatus('success');
     playClaimRewardSound();
     triggerHaptic('heavy');
@@ -273,9 +284,10 @@ export const ApernaNftMintModal: React.FC<Props> = ({
       txHash: tx,
       mintedAt: Date.now(),
       walletAddress: address,
-      priceUsd: NFT_MINT_PRICE_USD * quantity,
+      priceUsd: isRealOnChain ? NFT_MINT_PRICE_USD * quantity : 0,
       network: networkName,
       rarity: selectedChapter.rarity,
+      isRealOnChain: isRealOnChain,
     };
 
     const updated = saveMintedNftStorage(newRecord);
@@ -440,11 +452,20 @@ export const ApernaNftMintModal: React.FC<Props> = ({
                 </div>
                 <div>
                   <h4 className="text-base font-extrabold text-white">
-                    {language === 'hi' ? '🎉 NFT सफलतापूर्वक मिंट हो गया!' : '🎉 NFT Minted Successfully on Polygon!'}
+                    {isRealOnChainTx
+                      ? (language === 'hi' ? '🎉 असली ऑन-चेन NFT मिंट सफल!' : '🎉 Real On-Chain NFT Minted on Polygon!')
+                      : (language === 'hi' ? '🎉 +1,000 एयरड्रॉप टोकन बोनस क्लेम हो गया!' : '🎉 Free +1,000 Airdrop Token Reward Claimed!')}
                   </h4>
                   <p className="text-xs text-emerald-200/90 mt-1">
                     {selectedChapter.title} (#{selectedChapter.tokenId})
                   </p>
+                  <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                    isRealOnChainTx 
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' 
+                      : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+                  }`}>
+                    {isRealOnChainTx ? '⛓️ Polygon Mainnet On-Chain' : '🎮 In-App Airdrop Reward (Off-Chain)'}
+                  </span>
                 </div>
 
                 {/* Reward Banner */}
@@ -458,48 +479,74 @@ export const ApernaNftMintModal: React.FC<Props> = ({
                     </span>
                     <p className="text-[10px] text-amber-200/90 mt-0.5">
                       {language === 'hi' 
-                        ? 'पहला NFT खरीदने पर 1,000 टोकन आपके बैलेंस में क्रेडिट कर दिए गए हैं!' 
-                        : '1,000 bonus tokens added to your balance for minting your first NFT!'}
+                        ? 'पहला NFT टास्क पूरा करने पर 1,000 टोकन आपके बैलेंस में क्रेडिट कर दिए गए हैं!' 
+                        : '1,000 bonus tokens added to your balance for completing the 1st NFT task!'}
                     </p>
                   </div>
                 )}
 
-                {/* Tx Hash Box */}
-                <div className="p-3 rounded-xl bg-black/40 border border-emerald-500/30 text-left font-mono text-[11px] space-y-1">
-                  <div className="flex items-center justify-between text-emerald-300">
-                    <span>Transaction Hash:</span>
-                    <button
-                      onClick={() => copyToClipboard(mintTxHash, 'tx')}
-                      className="flex items-center gap-1 text-[10px] text-cyan-300 hover:text-white"
-                    >
-                      {copiedTx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedTx ? 'Copied' : 'Copy'}</span>
-                    </button>
+                {/* Info Card: Transparent Explanation for User */}
+                {!isRealOnChainTx ? (
+                  <div className="p-3 rounded-xl bg-black/50 border border-amber-400/40 text-left text-xs space-y-1.5 text-slate-200">
+                    <div className="flex items-center gap-1.5 text-amber-300 font-bold text-[11px]">
+                      <span>💡</span>
+                      <span>{language === 'hi' ? 'सच्ची और स्पष्ट जानकारी:' : 'Clear & Honest Details:'}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      {language === 'hi'
+                        ? 'यह Telegram गेम का फ्री एयरड्रॉप टास्क है। आपके कोई POL या पैसे नहीं कटे हैं, और +1,000 टोकन सीधे आपके गेम बैलेंस में जुड़ गए हैं।'
+                        : 'This is a free Telegram game airdrop task. No POL was charged, and +1,000 tokens are directly credited to your game balance.'}
+                    </p>
+                    <div className="p-2 rounded-lg bg-black/40 font-mono text-[10px] text-cyan-300 flex items-center justify-between">
+                      <span>Voucher ID: {mintTxHash}</span>
+                      <span className="text-emerald-400">✓ In-App Active</span>
+                    </div>
+                    <p className="text-[10px] text-cyan-300/80">
+                      {language === 'hi'
+                        ? '📌 नोट: असली MetaMask वॉलेट में Polygon NFT केवल तब आता है जब MetaMask ब्राउज़र में खोलकर ऑन-चेन गैस फीस के साथ मिंट किया जाए।'
+                        : '📌 Note: Real MetaMask on-chain NFT requires opening in MetaMask browser and signing a transaction on Polygon.'}
+                    </p>
                   </div>
-                  <div className="text-white truncate">{mintTxHash}</div>
-                </div>
+                ) : (
+                  <>
+                    {/* Real Tx Hash Box */}
+                    <div className="p-3 rounded-xl bg-black/40 border border-emerald-500/30 text-left font-mono text-[11px] space-y-1">
+                      <div className="flex items-center justify-between text-emerald-300">
+                        <span>Transaction Hash:</span>
+                        <button
+                          onClick={() => copyToClipboard(mintTxHash, 'tx')}
+                          className="flex items-center gap-1 text-[10px] text-cyan-300 hover:text-white"
+                        >
+                          {copiedTx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedTx ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <div className="text-white truncate">{mintTxHash}</div>
+                    </div>
 
-                {/* External Links */}
-                <div className="flex gap-2 pt-1">
-                  <a
-                    href={`${POLYGON_EXPLORER}/tx/${mintTxHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2 rounded-xl bg-cyan-950/80 border border-cyan-400/40 text-cyan-200 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <span>Polygonscan</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                  <a
-                    href={OPENSEA_COLLECTION}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2 rounded-xl bg-purple-950/80 border border-purple-400/40 text-purple-200 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <span>OpenSea</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
+                    {/* External Links */}
+                    <div className="flex gap-2 pt-1">
+                      <a
+                        href={`${POLYGON_EXPLORER}/tx/${mintTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2 rounded-xl bg-cyan-950/80 border border-cyan-400/40 text-cyan-200 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <span>Polygonscan</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <a
+                        href={OPENSEA_COLLECTION}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2 rounded-xl bg-purple-950/80 border border-purple-400/40 text-purple-200 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <span>OpenSea</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </>
+                )}
 
                 <button
                   onClick={() => {
@@ -609,28 +656,84 @@ export const ApernaNftMintModal: React.FC<Props> = ({
 
                   {/* Step-by-Step MetaMask Connection Guide for Users Having Difficulty */}
                   {showWalletHelp && (
-                    <div className="p-3 rounded-xl bg-black/60 border border-amber-400/40 text-xs text-slate-200 space-y-2 animate-fadeIn">
-                      <div className="font-bold text-amber-300 flex items-center gap-1 text-[11px]">
-                        <span>🦊</span>
-                        <span>{language === 'hi' ? 'MetaMask से कनेक्ट करने का आसान तरीका:' : 'Easy Steps to Connect MetaMask:'}</span>
+                    <div className="p-3.5 rounded-xl bg-black/70 border border-amber-400/50 text-xs text-slate-200 space-y-3 animate-fadeIn">
+                      <div className="font-bold text-amber-300 flex items-center justify-between text-[11px]">
+                        <span className="flex items-center gap-1.5">
+                          <span>🦊</span>
+                          <span>{language === 'hi' ? 'Telegram में MetaMask कैसे जोड़ें?' : 'Connecting MetaMask in Telegram:'}</span>
+                        </span>
+                        <span className="text-[10px] text-cyan-300 font-mono">Polygon PoS</span>
                       </div>
-                      <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-300 font-mono">
-                        <li>
-                          {language === 'hi' 
-                            ? 'मोबाइल यूज़र: ऊपर बटन दबाएं, यह सीधे MetaMask ऐप ब्राउज़र में खुलेगा।' 
-                            : 'Mobile users: Tap Connect to open directly inside MetaMask app browser.'}
-                        </li>
-                        <li>
-                          {language === 'hi' 
-                            ? 'कंप्यूटर यूज़र: Chrome/Brave में MetaMask एक्सटेंशन एक्टिव रखें।' 
-                            : 'Desktop users: Ensure MetaMask browser extension is unlocked.'}
-                        </li>
-                        <li>
-                          {language === 'hi'
-                            ? 'यदि वॉलेट कनेक्ट में परेशानी हो, तो दाईं तरफ "1-Click In-App Web3" चुनें — यह बिना किसी परेशानी के तुरंत मिंट करता है और 1,000 टोकन बोनस देता है!'
-                            : 'Having trouble? Use "1-Click In-App Web3" — zero gas friction, instant mint, and full 1,000 token bonus!'}
-                        </li>
-                      </ol>
+
+                      <p className="text-[11px] text-amber-100/90 leading-relaxed bg-amber-950/40 p-2 rounded-lg border border-amber-500/30">
+                        {language === 'hi'
+                          ? '⚠️ Telegram का अपना मोबाइल ब्राउज़र MetaMask एक्सटेंशन को सपोर्ट नहीं करता। इसलिए मोबाइल पर सीधे MetaMask कनेक्ट नहीं होता।'
+                          : '⚠️ Telegram mobile webview cannot run browser extensions like MetaMask directly.'}
+                      </p>
+
+                      <div className="space-y-2 text-[11px] text-slate-300">
+                        <div className="flex items-start gap-2">
+                          <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center shrink-0 text-[10px]">1</span>
+                          <span>
+                            {language === 'hi'
+                              ? 'नीचे बटन दबाकर इस पेज का लिंक कॉपी करें:'
+                              : 'Copy this DApp link below:'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              playTapSound();
+                              const host = typeof window !== 'undefined' ? (window.location.host || 'my-project-six-coral-29.vercel.app') : 'my-project-six-coral-29.vercel.app';
+                              const url = `https://${host}`;
+                              navigator.clipboard.writeText(url);
+                              setCopiedDappUrl(true);
+                              setTimeout(() => setCopiedDappUrl(false), 2500);
+                            }}
+                            className="flex-1 py-2 px-3 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-400/50 text-cyan-200 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            {copiedDappUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiedDappUrl ? (language === 'hi' ? 'लिंक कॉपी हो गया!' : 'Link Copied!') : (language === 'hi' ? '📋 ऐप लिंक कॉपी करें' : '📋 Copy DApp Link')}</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              playTapSound();
+                              const host = typeof window !== 'undefined' ? (window.location.host || 'my-project-six-coral-29.vercel.app') : 'my-project-six-coral-29.vercel.app';
+                              const metamaskUrl = `https://metamask.app.link/dapp/${host}`;
+                              const tg = (window as any).Telegram?.WebApp;
+                              if (tg && typeof tg.openLink === 'function') {
+                                tg.openLink(metamaskUrl);
+                              } else {
+                                window.open(metamaskUrl, '_blank');
+                              }
+                            }}
+                            className="flex-1 py-2 px-3 rounded-lg bg-orange-600/80 hover:bg-orange-500 border border-orange-400/50 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>🚀</span>
+                            <span>{language === 'hi' ? 'MetaMask में खोलें' : 'Open In MetaMask'}</span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-start gap-2">
+                          <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center shrink-0 text-[10px]">2</span>
+                          <span>
+                            {language === 'hi'
+                              ? 'MetaMask ऐप खोलें ➔ नीचे "Browser" (🌐) टैब दबाएं ➔ सर्च बार में लिंक पेस्ट करके खोलें।'
+                              : 'Open MetaMask app ➔ tap Browser icon (🌐) ➔ paste URL.'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-start gap-2">
+                          <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center justify-center shrink-0 text-[10px]">⚡</span>
+                          <span className="text-emerald-300 font-medium">
+                            {language === 'hi'
+                              ? 'अगर आपके पास MetaMask या POL नहीं है, तो सीधे ऊपर "1-Click इन-ऐप" से +1,000 एयरड्रॉप टोकन मुफ्त ले सकते हैं!'
+                              : 'No MetaMask/POL? Simply use "1-Click In-App" for instant free 1,000 airdrop tokens!'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -887,22 +990,35 @@ export const ApernaNftMintModal: React.FC<Props> = ({
                           </div>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[9px] font-mono font-bold">
-                        ${nft.priceUsd.toFixed(2)}
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border ${
+                        nft.isRealOnChain
+                          ? 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30'
+                          : 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+                      }`}>
+                        {nft.isRealOnChain ? '⛓️ Polygon On-Chain' : '🎮 In-App Airdrop'}
                       </span>
                     </div>
 
                     <div className="p-2 rounded-xl bg-black/40 text-[10px] font-mono text-slate-300 flex items-center justify-between">
-                      <span className="truncate">Tx: {nft.txHash.slice(0, 14)}...</span>
-                      <a
-                        href={`${POLYGON_EXPLORER}/tx/${nft.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-cyan-300 hover:text-white flex items-center gap-0.5 ml-2 shrink-0"
-                      >
-                        <span>Scan</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                      {nft.isRealOnChain ? (
+                        <>
+                          <span className="truncate">Tx: {nft.txHash.slice(0, 16)}...</span>
+                          <a
+                            href={`${POLYGON_EXPLORER}/tx/${nft.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-300 hover:text-white flex items-center gap-0.5 ml-2 shrink-0 font-bold"
+                          >
+                            <span>Polygonscan</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-amber-200/90 truncate">Voucher: {nft.txHash}</span>
+                          <span className="text-emerald-400 font-bold shrink-0 ml-2">✓ +1,000 Tokens Claimed</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Row: Sell on Marketplace button for 500 tokens */}
@@ -916,14 +1032,18 @@ export const ApernaNftMintModal: React.FC<Props> = ({
                         className="flex-1 py-2 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
                       >
                         <Flame className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                        <span>{language === 'hi' ? 'मार्केट पर सेल करें (+500 टोकन)' : 'Sell on Market (+500 Tokens)'}</span>
+                        <span>
+                          {nft.isRealOnChain
+                            ? (language === 'hi' ? 'मार्केट पर सेल करें (+500 टोकन)' : 'Sell on Market (+500 Tokens)')
+                            : (language === 'hi' ? 'लिस्टिंग टास्क पूरा करें (+500 टोकन)' : 'Complete Listing Task (+500 Tokens)')}
+                        </span>
                       </button>
                       <a
                         href={OPENSEA_COLLECTION}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-cyan-200 hover:text-white text-xs font-bold flex items-center justify-center cursor-pointer"
-                        title="View on OpenSea"
+                        title="View Collection on OpenSea"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>

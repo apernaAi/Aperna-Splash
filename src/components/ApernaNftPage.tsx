@@ -135,17 +135,17 @@ export const ApernaNftPage: React.FC<Props> = ({
           </div>
           <div className="grid grid-cols-2 gap-2 text-left">
             <div className="p-2 rounded-xl bg-black/40 border border-amber-400/30">
-              <div className="text-[10px] text-amber-300 font-mono font-bold">1st NFT Mint</div>
+              <div className="text-[10px] text-amber-300 font-mono font-bold">1st NFT Reward</div>
               <div className="text-sm font-black text-white">+1,000 Tokens</div>
               <div className="text-[9px] text-slate-300">
-                {language === 'hi' ? 'पहला NFT खरीदने पर' : 'Reward on 1st buy'}
+                {language === 'hi' ? 'NFT मिंट या इन-ऐप क्लेम पर' : 'On 1st mint or claim'}
               </div>
             </div>
             <div className="p-2 rounded-xl bg-black/40 border border-purple-400/30">
-              <div className="text-[10px] text-purple-300 font-mono font-bold">Marketplace Sale</div>
+              <div className="text-[10px] text-purple-300 font-mono font-bold">Listing Task</div>
               <div className="text-sm font-black text-white">+500 Tokens</div>
               <div className="text-[9px] text-slate-300">
-                {language === 'hi' ? 'किसी भी प्लेटफॉर्म पर सेल' : 'List free on OpenSea'}
+                {language === 'hi' ? 'सेल लिस्टिंग टास्क पूरा करने पर' : 'On listing task'}
               </div>
             </div>
           </div>

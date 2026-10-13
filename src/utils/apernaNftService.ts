@@ -127,6 +127,7 @@ export interface MintedNftRecord {
   priceUsd: number;
   network: string;
   rarity: string;
+  isRealOnChain?: boolean;
 }
 
 export function getMintedNftsStorage(): MintedNftRecord[] {
