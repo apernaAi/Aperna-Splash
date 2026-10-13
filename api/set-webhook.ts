@@ -117,10 +117,11 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ ok: true, message: 'Profile and Bio cache sanitized', details: results });
     }
 
-    // 2. Query Webhook Info
-    if (action === 'get') {
+    // 2. Query Webhook & Menu Button Info
+    if (action === 'get' || action === 'get_menu') {
       const infoData = await callTelegram('getWebhookInfo');
-      return res.status(200).json(infoData);
+      const menuData = await callTelegram('getChatMenuButton');
+      return res.status(200).json({ ok: true, webhook: infoData, menuButton: menuData });
     }
 
     // 3. Delete Webhook
@@ -129,7 +130,15 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json(delData);
     }
 
-    // 4. Default: Set & Verify Webhook
+    // 4. Reset Menu Button to Default (removes custom / old button)
+    if (action === 'reset_menu') {
+      const resetMenuRes = await callTelegram('setChatMenuButton', {
+        menu_button: { type: 'default' },
+      });
+      return res.status(200).json({ ok: true, message: 'Menu button reset to default', result: resetMenuRes });
+    }
+
+    // 5. Default or update_menu: Set & Verify Webhook + Sync Global Menu Button
     const queryUrl = req.query?.url as string;
     let baseUrl = queryUrl || DEFAULT_APP_URL;
 
@@ -144,6 +153,24 @@ export default async function handler(req: any, res: any) {
     const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
     const webhookUrl = `${cleanBaseUrl}/api/webhook`;
 
+    // Always update global Menu Button so bottom Play Mimi button matches fresh app
+    const menuButtonRes = await callTelegram('setChatMenuButton', {
+      menu_button: {
+        type: 'web_app',
+        text: '🐱 Play Mimi 🎧',
+        web_app: { url: cleanBaseUrl },
+      },
+    });
+
+    if (action === 'update_menu') {
+      return res.status(200).json({
+        ok: true,
+        message: 'Telegram bottom menu button updated successfully!',
+        appUrl: cleanBaseUrl,
+        menuButton: menuButtonRes,
+      });
+    }
+
     const setParams: Record<string, unknown> = {
       url: webhookUrl,
       drop_pending_updates: true,
@@ -154,6 +181,7 @@ export default async function handler(req: any, res: any) {
 
     const setData = await callTelegram('setWebhook', setParams);
     const verifyData = await callTelegram('getWebhookInfo');
+    const verifyMenuData = await callTelegram('getChatMenuButton');
 
     if ((req.headers?.accept || '').includes('text/html')) {
       return res.status(200).send(`
@@ -182,7 +210,11 @@ export default async function handler(req: any, res: any) {
             <pre>${JSON.stringify(setData, null, 2)}</pre>
             <p><strong>Live Webhook Info:</strong></p>
             <pre>${JSON.stringify(verifyData, null, 2)}</pre>
+            <p><strong>Live Bottom Menu Button ("Play Mimi"):</strong></p>
+            <pre>${JSON.stringify(verifyMenuData, null, 2)}</pre>
             <div style="margin-top: 1.5rem;">
+              <a href="/api/set-webhook?action=update_menu&url=${encodeURIComponent(cleanBaseUrl)}" class="btn">🔄 Update Bottom Menu Button</a>
+              <a href="/api/set-webhook?action=reset_menu" class="btn" style="background:#dc2626;">🗑️ Reset Menu Button</a>
               <a href="/api/set-webhook?action=clean_profile" class="btn btn-emerald">🛡️ Force Purge Spam Bio Cache</a>
               <a href="/api/set-webhook?action=get" class="btn">🔍 Refresh Info</a>
             </div>
@@ -196,6 +228,7 @@ export default async function handler(req: any, res: any) {
       success: setData.ok,
       telegramResponse: setData,
       currentWebhook: verifyData,
+      currentMenuButton: verifyMenuData,
       webhookUrl,
       appUrl: cleanBaseUrl,
     });
