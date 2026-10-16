@@ -13,6 +13,7 @@ interface Props {
   onOpenWallet: () => void;
   onOpenClaimModal?: () => void;
   onLevelUpCelebration: (newLevel: number, unlockedTrackId: number) => void;
+  onOpenRank?: () => void;
 }
 
 export const MimiMakingDashboard: React.FC<Props> = ({
@@ -23,6 +24,7 @@ export const MimiMakingDashboard: React.FC<Props> = ({
   onOpenWallet,
   onOpenClaimModal,
   onLevelUpCelebration,
+  onOpenRank,
 }) => {
   const [now, setNow] = useState(Date.now());
   const [isMerging, setIsMerging] = useState(false);
@@ -183,6 +185,43 @@ export const MimiMakingDashboard: React.FC<Props> = ({
             {stats.walletProvider || 'Tonkeeper'}
           </span>
         </div>
+      )}
+
+      {/* 0.05 REAL-TIME LIVE USERS RANK STRIP */}
+      {onOpenRank && (
+        <button
+          onClick={() => {
+            playTapSound();
+            onOpenRank();
+          }}
+          className="w-full rounded-2xl bg-gradient-to-r from-[#0a235c] via-[#091f52] to-[#051336] border border-cyan-400/40 p-2.5 px-3 flex items-center justify-between shadow-[0_4px_18px_rgba(0,210,255,0.15)] hover:border-cyan-300 transition-all cursor-pointer group text-left"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-sm shadow-[0_0_10px_rgba(245,158,11,0.5)]">
+              🏆
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-black text-white">
+                  {language === 'hi' ? 'लाइव यूज़र्स रैंक' : 'Live Users Ranking'}
+                </span>
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 text-[8.5px] font-mono font-bold flex items-center gap-1 border border-rose-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                  LIVE
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-300 font-mono">
+                {language === 'hi'
+                  ? `लेवल ${stats.level} • ${stats.balance.toFixed(1)} $MIMI • असली लीडरबोर्ड देखें`
+                  : `Level ${stats.level} • ${stats.balance.toFixed(1)} $MIMI • Check Live Board`}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-cyan-300 font-bold text-xs group-hover:translate-x-0.5 transition-transform">
+            <span>{language === 'hi' ? 'रैंक देखें' : 'View Rank'}</span>
+            <ChevronRight className="w-4 h-4 text-cyan-400" />
+          </div>
+        </button>
       )}
 
       {/* 0.1 REAL TOKEN REWARDS & DEX LISTING NOTICE BANNER */}

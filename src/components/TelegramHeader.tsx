@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { 
   Volume2, VolumeX, ChevronDown, MoreVertical, X, 
-  ShieldCheck, RefreshCw, Radio, ArrowLeft, Shield, Users 
+  ShieldCheck, RefreshCw, Radio, ArrowLeft, Shield, Users, Trophy 
 } from 'lucide-react';
 import { TabType, Language } from '../types/airdrop.ts';
 import { playTapSound } from '../utils/audioEngine.ts';
@@ -21,6 +21,7 @@ interface Props {
   onOpenBotSync: () => void;
   onOpenNftPage?: () => void;
   onOpenSecurityModal?: () => void;
+  onOpenRankPage?: () => void;
   activeTab?: TabType;
   onBack?: () => void;
 }
@@ -35,6 +36,7 @@ export const TelegramHeader: React.FC<Props> = ({
   onOpenBotSync,
   onOpenNftPage,
   onOpenSecurityModal,
+  onOpenRankPage,
   activeTab = 'beats',
   onBack,
 }) => {
@@ -82,6 +84,25 @@ export const TelegramHeader: React.FC<Props> = ({
           </button>
         )}
 
+        {/* Live Rank Button */}
+        {onOpenRankPage && (
+          <button
+            onClick={() => {
+              playTapSound();
+              onOpenRankPage();
+            }}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold active:scale-95 transition-all shadow-[0_0_10px_rgba(245,158,11,0.3)] cursor-pointer ${
+              activeTab === 'rank'
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black border border-amber-300 shadow-[0_0_14px_rgba(245,158,11,0.7)]'
+                : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 text-amber-300 border border-amber-400/40'
+            }`}
+            title="Live Users Rank"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-300" />
+            <span className="font-mono text-[11px] font-black">{language === 'hi' ? 'रैंक' : 'Rank'}</span>
+          </button>
+        )}
+
         {/* Top 1,000 Early Pool Button - Takes user to dedicated 1000 Reserve Pool */}
         {onOpenNftPage && (
           <button
@@ -89,7 +110,7 @@ export const TelegramHeader: React.FC<Props> = ({
               playTapSound();
               onOpenNftPage();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold active:scale-95 transition-all shadow-[0_0_12px_rgba(0,210,255,0.3)] cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold active:scale-95 transition-all shadow-[0_0_12px_rgba(0,210,255,0.3)] cursor-pointer ${
               activeTab === 'nft'
                 ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border border-cyan-300'
                 : 'bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-400/50 text-cyan-300'
@@ -172,6 +193,19 @@ export const TelegramHeader: React.FC<Props> = ({
         {/* Dropdown Menu */}
         {showMenu && (
           <div className="absolute top-10 right-0 w-60 bg-[#06183e] border border-cyan-500/30 rounded-2xl shadow-2xl p-2 z-50 text-xs flex flex-col gap-1 backdrop-blur-xl animate-fadeIn">
+            {onOpenRankPage && (
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  onOpenRankPage();
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-left bg-gradient-to-r from-amber-500/10 to-yellow-500/10 hover:from-amber-500/20 hover:to-yellow-500/20 text-amber-300 font-bold border border-amber-400/30 cursor-pointer"
+              >
+                <Trophy className="w-4 h-4 text-amber-300" />
+                <span>{language === 'hi' ? '🏆 असली यूज़र्स रैंक (लीडरबोर्ड)' : '🏆 Live Users Leaderboard'}</span>
+              </button>
+            )}
+
             {onOpenNftPage && (
               <button
                 onClick={() => {

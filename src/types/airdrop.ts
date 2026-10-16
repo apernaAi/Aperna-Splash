@@ -1,6 +1,39 @@
-export type TabType = 'tasks' | 'studio' | 'beats' | 'vault' | 'profile' | 'nft';
+export type TabType = 'tasks' | 'studio' | 'beats' | 'vault' | 'profile' | 'nft' | 'rank';
 
 export type Language = 'hi' | 'en';
+
+export interface RankedUser {
+  userId: string;
+  name: string;
+  telegramUsername: string;
+  walletAddress: string | null;
+  level: number;
+  balance: number;
+  tasksCompletedCount: number;
+  dailyStreakDay: number;
+  score: number;
+  roleTitle: string;
+  lastActive: string;
+}
+
+export function calculateRankScore(stats: {
+  level: number;
+  balance: number;
+  tasksCompletedCount?: number;
+  dailyStreakDay?: number;
+}): number {
+  const lvl = Math.max(1, Number(stats.level) || 1);
+  const bal = Math.max(0, Number(stats.balance) || 0);
+  const tasks = Math.max(0, Number(stats.tasksCompletedCount) || 0);
+  const streak = Math.max(1, Number(stats.dailyStreakDay) || 1);
+
+  // Transparent, merit-based scoring formula:
+  // 1. Level Mastery: +1,000 points per level
+  // 2. Token Holdings: +2 points per $MIMI token
+  // 3. Task / Quest completions: +150 points per task
+  // 4. Daily Consistency Streak: +100 points per streak day
+  return Math.floor((lvl * 1000) + (bal * 2) + (tasks * 150) + (streak * 100));
+}
 
 export interface MusicTrack {
   id: number;
@@ -37,6 +70,8 @@ export interface UserStats {
   isWalletVerified: boolean;
   dailyStreakDay: number;
   lastDailyClaim: number | null;
+  tasksCompletedCount?: number;
+  score?: number;
   
   // Real $MIMI On-Chain Claim Architecture
   claimStatus?: 'unclaimed' | 'pending' | 'approved' | 'claimed';

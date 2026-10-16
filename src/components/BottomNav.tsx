@@ -55,26 +55,29 @@ export const BottomNav: React.FC<Props> = ({
           </span>
         </button>
 
-        {/* Tab 2: स्टूडियो (Studio) */}
+        {/* Tab 2: लाइव रैंक (Real Users Rank & Leaderboard) */}
         <button
-          onClick={() => handleSelect('studio')}
+          onClick={() => handleSelect('rank')}
           className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
-            activeTab === 'studio' ? 'scale-105 opacity-100' : 'opacity-70 hover:opacity-100'
+            activeTab === 'rank' ? 'scale-105 opacity-100' : 'opacity-70 hover:opacity-100'
           }`}
         >
           <div className="relative w-7 h-7 flex items-center justify-center">
-            <div className={`w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-sm ${
-              activeTab === 'studio' ? 'scale-110 shadow-[0_0_12px_rgba(0,210,255,0.6)]' : ''
+            <div className={`w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-sm ${
+              activeTab === 'rank' ? 'scale-110 shadow-[0_0_14px_rgba(245,158,11,0.8)]' : ''
             }`}>
-              🎧
+              🏆
             </div>
+            {/* Live Indicator Dot */}
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.9)]" />
           </div>
           <span
             className={`text-[10px] mt-0.5 font-bold tracking-tight ${
-              activeTab === 'studio' ? 'text-cyan-300 font-black' : 'text-slate-300'
+              activeTab === 'rank' ? 'text-amber-300 font-black drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'text-slate-300'
             }`}
           >
-            {language === 'hi' ? 'स्टूडियो' : 'Studio'}
+            {language === 'hi' ? 'रैंक' : 'Rank'}
           </span>
         </button>
 

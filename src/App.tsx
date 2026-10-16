@@ -22,6 +22,7 @@ import { ClaimMimiModal } from './components/ClaimMimiModal.tsx';
 import { AdsgramRewardModal } from './components/AdsgramRewardModal.tsx';
 import { ApernaNftPage } from './components/ApernaNftPage.tsx';
 import { ZPlusSecurityModal } from './components/ZPlusSecurityModal.tsx';
+import { RankView } from './components/RankView.tsx';
 import { useTonAddress } from '@tonconnect/ui-react';
 import { setMuteState, playClaimRewardSound } from './utils/audioEngine.ts';
 import { saveStatsWithIntegritySignature, verifyLocalStorageIntegrity, validateHumanTapVelocity } from './utils/securityEngine.ts';
@@ -194,6 +195,8 @@ export default function App() {
         setActiveTab('vault');
       } else if (tabParam === 'beats' || tabParam === 'dashboard') {
         setActiveTab('beats');
+      } else if (tabParam === 'rank' || tabParam === 'leaderboard') {
+        setActiveTab('rank');
       } else if (tabParam === 'tasks') {
         setActiveTab('tasks');
       } else if (tabParam === 'frens' || tabParam === 'profile') {
@@ -301,12 +304,17 @@ export default function App() {
 
   // Real-Time Cloud Firestore Sync for Cross-Device Referrals & 10% Commission
   useEffect(() => {
+    const completedTasksCount = tasks.filter((t) => t.isCompleted).length;
     syncUserWithCloud(
       stats.userId,
       stats.name,
       stats.telegramUsername,
       stats.walletAddress || tonAddress || null,
-      stats.balance
+      stats.balance,
+      stats.level,
+      completedTasksCount,
+      stats.dailyStreakDay || 1,
+      stats.roleTitle
     ).catch(console.error);
 
     const unsubRefs = listenToUserReferrals(stats.userId, (cloudRefs, totalCommission) => {
@@ -514,6 +522,7 @@ export default function App() {
         onOpenBotSync={() => setIsBotSyncOpen(true)}
         onOpenNftPage={() => setActiveTab('nft')}
         onOpenSecurityModal={() => setIsSecurityModalOpen(true)}
+        onOpenRankPage={() => setActiveTab('rank')}
         activeTab={activeTab}
         onBack={() => setActiveTab('beats')}
       />
@@ -531,6 +540,19 @@ export default function App() {
             onOpenWallet={() => setIsWalletModalOpen(true)}
             onOpenClaimModal={() => setIsClaimModalOpen(true)}
             onLevelUpCelebration={handleLevelUpCelebration}
+            onOpenRank={() => setActiveTab('rank')}
+          />
+        )}
+
+        {/* Real Live Users Rank & Global Leaderboard */}
+        {activeTab === 'rank' && (
+          <RankView
+            stats={stats}
+            tasks={tasks}
+            language={language}
+            onOpenTasks={() => setActiveTab('tasks')}
+            onOpenBeats={() => setActiveTab('beats')}
+            onOpenConnectWallet={() => setIsWalletModalOpen(true)}
           />
         )}
 

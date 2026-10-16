@@ -41,6 +41,30 @@
           "type": "number",
           "description": "Number of recruits"
         },
+        "level": {
+          "type": "number",
+          "description": "Current DJ / Producer Level"
+        },
+        "score": {
+          "type": "number",
+          "description": "Calculated Live Ranking Score"
+        },
+        "tasksCompletedCount": {
+          "type": "number",
+          "description": "Total completed quests count"
+        },
+        "dailyStreakDay": {
+          "type": "number",
+          "description": "Current daily check-in streak day"
+        },
+        "roleTitle": {
+          "type": "string",
+          "description": "Sonic Pioneer role title"
+        },
+        "lastActive": {
+          "type": "string",
+          "description": "Last active ISO timestamp"
+        },
         "createdAt": {
           "type": "string",
           "description": "ISO timestamp"
