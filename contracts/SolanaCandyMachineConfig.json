@@ -1,0 +1,27 @@
+{
+  "price": 0.35,
+  "number": 2949,
+  "gatekeeper": null,
+  "creators": [
+    {
+      "address": "ApernaAI11111111111111111111111111111111111",
+      "share": 100
+    }
+  ],
+  "solTreasuryAccount": "ApernaAI11111111111111111111111111111111111",
+  "splTokenAccount": null,
+  "splToken": null,
+  "goLiveDate": "2026-10-10T00:00:00Z",
+  "endSettings": null,
+  "whitelistMintSettings": null,
+  "hiddenSettings": null,
+  "freezeTime": null,
+  "uploadMethod": "bundlr",
+  "retainAuthority": true,
+  "isMutable": true,
+  "symbol": "APERNA",
+  "sellerFeeBasisPoints": 750,
+  "awsConfig": null,
+  "nftStorageAuthToken": null,
+  "shdwStorageConfigFile": null
+}

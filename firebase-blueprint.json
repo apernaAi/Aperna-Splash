@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "User profile, balance, and referral link data",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique user or telegram ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "telegramUsername": {
+          "type": "string",
+          "description": "Telegram handle"
+        },
+        "walletAddress": {
+          "type": "string",
+          "description": "Connected TON wallet address"
+        },
+        "referrerId": {
+          "type": "string",
+          "description": "User ID who referred this user"
+        },
+        "bonusClaimed": {
+          "type": "boolean",
+          "description": "Whether initial referral bonus was credited"
+        },
+        "balance": {
+          "type": "number",
+          "description": "Total $MIMI balance"
+        },
+        "commissionEarned": {
+          "type": "number",
+          "description": "Total 10% commissions received from recruits"
+        },
+        "recruitsCount": {
+          "type": "number",
+          "description": "Number of recruits"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["userId", "createdAt"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Record of a referral connection between users",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Referral record ID"
+        },
+        "referrerId": {
+          "type": "string",
+          "description": "Referrer user ID"
+        },
+        "referredUserId": {
+          "type": "string",
+          "description": "Referred user ID"
+        },
+        "referredName": {
+          "type": "string",
+          "description": "Name of referred friend"
+        },
+        "referredUsername": {
+          "type": "string",
+          "description": "Telegram username of referred friend"
+        },
+        "referredWallet": {
+          "type": "string",
+          "description": "Connected wallet address"
+        },
+        "bonusEarned": {
+          "type": "number",
+          "description": "Initial referral reward (+100 $MIMI)"
+        },
+        "commissionEarned": {
+          "type": "number",
+          "description": "10% lifetime commission earned so far"
+        },
+        "status": {
+          "type": "string",
+          "description": "qualified or pending"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "referrerId", "referredUserId", "status", "createdAt"]
+    },
+    "Commission": {
+      "title": "Commission",
+      "description": "10% Lifetime commission transaction log",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique commission transaction ID"
+        },
+        "referrerId": {
+          "type": "string",
+          "description": "Referrer user ID receiving the 10%"
+        },
+        "fromUserId": {
+          "type": "string",
+          "description": "Recruit who earned tokens"
+        },
+        "activity": {
+          "type": "string",
+          "description": "Mining, Quest, or Game"
+        },
+        "recruitEarned": {
+          "type": "number",
+          "description": "Tokens earned by recruit"
+        },
+        "commissionAmount": {
+          "type": "number",
+          "description": "10% commission credited"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "referrerId", "fromUserId", "commissionAmount", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserAccount"
+      },
+      "description": "Individual user accounts with balance and referral stats"
+    },
+    "/referrals/{referralId}": {
+      "schema": {
+        "$ref": "#/entities/Referral"
+      },
+      "description": "Referral relationships and qualifications"
+    },
+    "/commissions/{commissionId}": {
+      "schema": {
+        "$ref": "#/entities/Commission"
+      },
+      "description": "10% lifetime commission audit logs"
+    }
+  }
+}

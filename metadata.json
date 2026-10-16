@@ -1,0 +1,7 @@
+{
+  "name": "Music Mimi ($MIMI) — Official Community Airdrop",
+  "description": "Music Mimi ($MIMI) official Web3 music mining and airdrop protocol on TON. Stream beats, complete community quests, and claim verified tokens.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
