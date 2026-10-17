@@ -7,35 +7,39 @@
  */
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const DEFAULT_CHANNEL = process.env.TELEGRAM_CHANNEL || '@mimi_official_community';
+const DEFAULT_CHANNEL = process.env.TELEGRAM_CHANNEL || '@ApernaAIOfficial';
 const DEFAULT_APP_URL = process.env.APP_URL || 'https://my-project-six-coral-29.vercel.app';
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 export function buildOfficialReleaseMessage(customNotes?: string, appUrl = DEFAULT_APP_URL): string {
   const cleanAppUrl = appUrl.replace(/\/+$/, '');
   
-  return `🚀 <b>MUSIC MIMI ($MIMI) — OFFICIAL ECOSYSTEM UPDATE</b> 🐱✨
+  return `🚀 <b>APERNA AI &amp; MUSIC MIMI ($MIMI) — OFFICIAL ECOSYSTEM UPDATE</b> 🐱✨
 ━━━━━━━━━━━━━━━━━━━━━
 
-🔥 <b>Community Alert & Release Notes:</b>
-We have just pushed a fresh, high-speed update to the <b>Music Mimi Web3 Mini App</b>!
+🔥 <b>Community Alert &amp; Release Notes:</b>
+Aperna AI Community ke sabhi members ke liye ek fresh high-speed update live kar diya gaya hai!
 
-👑 <b>1. APERNA AI GENESIS MEMORIAL SAGA (NFT PORTAL)</b>
+🎬 <b>1. NEW YOUTUBE &amp; SOCIAL BOUNTY TASKS</b>
+• <b>Watch, Like &amp; Comment:</b> YouTube videos dekhne aur engage karne par instant $MIMI rewards!
+• <b>Channel Subscribe:</b> Official @hashmicrypto1 channel subscribe karein aur bell icon on karein.
+• <b>Telegram &amp; Instagram:</b> @ApernaAIOfficial &amp; @Hashmi_Crypto follow bounty tasks active.
+
+👑 <b>2. APERNA AI GENESIS MEMORIAL SAGA (NFT PORTAL)</b>
 • <b>Live on Polygon PoS Mainnet:</b> Sovereign ERC-721 + EIP-2981 Web3 collection.
 • <b>Contract:</b> <code>0x8EAA10c5Cb32b585AE397878F64CF6d3F3b3D348</code>
-• <b>Exclusive Chapter Pricing:</b> Only $0.50 USD (~1.25 POL) per chapter.
-• 🎁 <b>Free 1st Mint Bonus:</b> <b>+1,000 $APERNA Tokens</b> credited directly to your airdrop balance!
-• 💎 <b>Marketplace Listing Reward:</b> <b>+500 $APERNA Tokens</b> when you list on OpenSea, MagicEden, or Polygon DEX!
+• 🎁 <b>Free 1st Mint Bonus:</b> <b>+1,000 $APERNA Tokens</b> credited directly to balance!
+• 💎 <b>Marketplace Listing Reward:</b> <b>+500 $APERNA Tokens</b> when you list on OpenSea &amp; MagicEden!
 
-🎧 <b>2. PROCEDURAL BEAT ENGINE & 8-HR LOOP MINER</b>
-• High-performance neural stems & real-time audio merge engine.
+🎧 <b>3. PROCEDURAL BEAT ENGINE &amp; 8-HR LOOP MINER</b>
+• High-performance neural stems &amp; real-time audio merge engine.
 • Active 8-Hour looping with automated claim multipliers.
 
-💳 <b>3. TON BLOCKCHAIN & METAMASK DUAL CONNECTIVITY</b>
+💳 <b>4. TON BLOCKCHAIN &amp; METAMASK DUAL CONNECTIVITY</b>
 • TON Connect integration for Telegram @wallet and Tonkeeper.
 • Direct MetaMask mobile deep-linking for on-chain Polygon minting.
 
-${customNotes ? `📌 <b>Additional Highlights:</b>\n${customNotes}\n\n` : ''}━━━━━━━━━━━━━━━━━━━━━
+${customNotes ? `📌 <b>Important Announcement:</b>\n${customNotes}\n\n` : ''}━━━━━━━━━━━━━━━━━━━━━
 👇 <b>Tap below to launch the updated Mini App immediately:</b>`;
 }
 
@@ -45,13 +49,13 @@ export function buildBroadcastKeyboard(appUrl = DEFAULT_APP_URL) {
     inline_keyboard: [
       [
         {
-          text: '🚀 Launch Updated Mimi App 🎧',
+          text: '🚀 Launch Aperna Mini App 🎧',
           web_app: { url: cleanAppUrl },
         },
       ],
       [
         {
-          text: '👑 Open Genesis NFT Portal',
+          text: '👑 Genesis NFT Portal',
           web_app: { url: `${cleanAppUrl}/?tab=nft` },
         },
         {
@@ -61,12 +65,12 @@ export function buildBroadcastKeyboard(appUrl = DEFAULT_APP_URL) {
       ],
       [
         {
-          text: '🌐 View OpenSea Collection',
-          url: 'https://opensea.io/collection/aperna-ai-genesis-memorial-saga',
+          text: '▶️ Hashmi Crypto YouTube',
+          url: 'https://youtube.com/@hashmicrypto1?si=p8615mTtahK5bA_o',
         },
         {
-          text: '👥 Join Community Discussion',
-          url: 'https://t.me/mimi_official_community',
+          text: '👥 Join @ApernaAIOfficial',
+          url: 'https://t.me/ApernaAIOfficial',
         },
       ],
     ],
@@ -169,10 +173,10 @@ export default async function handler(req: any, res: any) {
             <input type="hidden" name="token" value="${req.query?.token || req.body?.token || ''}" />
             
             <label>🎯 Target Channel (Username or Chat ID):</label>
-            <input type="text" name="channel" value="${queryChannel}" placeholder="@mimi_official_community or -100..." required />
+            <input type="text" name="channel" value="${queryChannel}" placeholder="@ApernaAIOfficial or -100..." required />
 
             <label>📝 Optional Custom Announcement Notes:</label>
-            <textarea name="notes" placeholder="e.g. • Fixed bottom menu button&#10;• Enhanced MetaMask mobile deep link&#10;• Instant 1,000 $APERNA airdrop claim"></textarea>
+            <textarea name="notes" placeholder="e.g. • Naye YouTube Task &amp; Instagram Task add ho gaye!&#10;• Video like/comment/subscribe par Free $MIMI claim karein&#10;• Instant 1,000 $APERNA airdrop reward"></textarea>
 
             <button type="submit" class="btn-primary">
               🚀 Send Professional Update to Channel
@@ -181,9 +185,9 @@ export default async function handler(req: any, res: any) {
 
           <div class="tip-box">
             💡 <strong>Channel Requirements:</strong><br/>
-            1. Ensure <b>@Musicmimi_bot</b> is added as an <b>Admin</b> in the channel with <b>Post Messages</b> permission.<br/>
-            2. If channel is <b>Public</b>: use <code>@mimi_official_community</code>.<br/>
-            3. If channel is <b>Private</b>: use its numerical chat_id (starts with <code>-100...</code>).
+            1. Ensure your Bot is added as an <b>Admin</b> in <b>@ApernaAIOfficial</b> with <b>Post Messages</b> permission.<br/>
+            2. For public channel: use <code>@ApernaAIOfficial</code>.<br/>
+            3. For private channel: use its numerical chat_id (starts with <code>-100...</code>).
           </div>
 
           <div class="preview-box">

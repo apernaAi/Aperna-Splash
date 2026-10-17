@@ -236,6 +236,17 @@ export const TelegramHeader: React.FC<Props> = ({
                 setShowMenu(false);
                 onOpenBotSync();
               }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-left bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 text-amber-300 font-bold border border-amber-400/40 cursor-pointer shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+            >
+              <Radio className="w-4 h-4 text-amber-400" />
+              <span>{language === 'hi' ? '📢 चैनल ब्रॉडकास्ट (@ApernaAIOfficial)' : '📢 Channel Broadcast (@ApernaAIOfficial)'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                onOpenBotSync();
+              }}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-left hover:bg-cyan-950/60 text-cyan-300 font-bold cursor-pointer"
             >
               <Radio className="w-4 h-4 text-cyan-400" />

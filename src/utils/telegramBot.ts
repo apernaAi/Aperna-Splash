@@ -8,7 +8,135 @@ export const TELEGRAM_BOT_CONFIG = {
   botUsername: 'Musicmimi_bot',
   appTitle: 'Music Mimi ($MIMI)',
   defaultVercelUrl: 'https://my-project-six-coral-29.vercel.app',
+  defaultChannel: '@ApernaAIOfficial',
+  channelUrl: 'https://t.me/ApernaAIOfficial',
 };
+
+export function buildOfficialReleaseHtml(customNotes?: string, appUrl = TELEGRAM_BOT_CONFIG.defaultVercelUrl): string {
+  const cleanAppUrl = appUrl.replace(/\/+$/, '');
+  return `🚀 <b>APERNA AI &amp; MUSIC MIMI ($MIMI) — OFFICIAL ECOSYSTEM UPDATE</b> 🐱✨
+━━━━━━━━━━━━━━━━━━━━━
+
+🔥 <b>Community Alert &amp; Release Notes:</b>
+Aperna AI Community ke sabhi members ke liye ek fresh high-speed update live kar diya gaya hai!
+
+🎬 <b>1. NEW YOUTUBE &amp; SOCIAL BOUNTY TASKS</b>
+• <b>Watch, Like &amp; Comment:</b> YouTube videos dekhne aur engage karne par instant $MIMI rewards!
+• <b>Channel Subscribe:</b> Official @hashmicrypto1 channel subscribe karein aur notification bell on karein.
+• <b>Telegram &amp; Instagram:</b> @ApernaAIOfficial &amp; @Hashmi_Crypto channel follow bounty tasks active.
+
+👑 <b>2. APERNA AI GENESIS MEMORIAL SAGA (NFT PORTAL)</b>
+• <b>Live on Polygon PoS Mainnet:</b> Sovereign ERC-721 + EIP-2981 Web3 collection.
+• <b>Contract:</b> <code>0x8EAA10c5Cb32b585AE397878F64CF6d3F3b3D348</code>
+• 🎁 <b>Free 1st Mint Bonus:</b> <b>+1,000 $APERNA Tokens</b> credited directly to balance!
+• 💎 <b>Marketplace Listing Reward:</b> <b>+500 $APERNA Tokens</b> on OpenSea &amp; MagicEden!
+
+🎧 <b>3. PROCEDURAL BEAT ENGINE &amp; 8-HR LOOP MINER</b>
+• High-performance neural stems &amp; real-time audio merge engine.
+• Active 8-Hour looping with automated claim multipliers.
+
+💳 <b>4. TON BLOCKCHAIN &amp; METAMASK DUAL CONNECTIVITY</b>
+• TON Connect integration for Telegram @wallet and Tonkeeper.
+• Direct MetaMask mobile deep-linking for on-chain Polygon minting.
+
+${customNotes ? `📌 <b>Additional Announcement:</b>\n${customNotes}\n\n` : ''}━━━━━━━━━━━━━━━━━━━━━
+👇 <b>Niche button dabakar turant Mini App kholein:</b>`;
+}
+
+export function buildOfficialBroadcastKeyboard(appUrl = TELEGRAM_BOT_CONFIG.defaultVercelUrl) {
+  const cleanAppUrl = appUrl.replace(/\/+$/, '');
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: '🚀 Launch Aperna Mini App 🎧',
+          web_app: { url: cleanAppUrl },
+        },
+      ],
+      [
+        {
+          text: '👑 Genesis NFT Portal',
+          web_app: { url: `${cleanAppUrl}/?tab=nft` },
+        },
+        {
+          text: '💎 Connect TON Vault',
+          web_app: { url: `${cleanAppUrl}/?tab=vault` },
+        },
+      ],
+      [
+        {
+          text: '▶️ Hashmi Crypto YouTube',
+          url: 'https://youtube.com/@hashmicrypto1?si=p8615mTtahK5bA_o',
+        },
+        {
+          text: '👥 Join @ApernaAIOfficial',
+          url: 'https://t.me/ApernaAIOfficial',
+        },
+      ],
+    ],
+  };
+}
+
+export async function sendChannelBroadcast(options: {
+  botToken?: string;
+  channel?: string;
+  notes?: string;
+  customUrl?: string;
+}): Promise<{ ok: boolean; messageId?: number; description?: string; error?: string }> {
+  const targetChannel = (options.channel || TELEGRAM_BOT_CONFIG.defaultChannel).trim();
+  const rawUrl = options.customUrl || (typeof window !== 'undefined' ? window.location.origin : TELEGRAM_BOT_CONFIG.defaultVercelUrl);
+  const cleanUrl = rawUrl.replace(/\/+$/, '');
+  const botToken = options.botToken?.trim();
+
+  // If botToken is provided in frontend, we can broadcast directly via Telegram API
+  if (botToken) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: targetChannel,
+          text: buildOfficialReleaseHtml(options.notes, cleanUrl),
+          parse_mode: 'HTML',
+          disable_web_page_preview: false,
+          reply_markup: buildOfficialBroadcastKeyboard(cleanUrl),
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        return { ok: true, messageId: data.result?.message_id };
+      } else {
+        return { ok: false, description: data.description || 'Telegram API returned an error' };
+      }
+    } catch (err: any) {
+      console.warn('Direct telegram API broadcast fetch error, trying backend route:', err);
+    }
+  }
+
+  // Fallback to /api/broadcast backend route
+  try {
+    const res = await fetch('/api/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: botToken,
+        channel: targetChannel,
+        notes: options.notes,
+        appUrl: cleanUrl,
+      }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      return { ok: true, messageId: data.result?.result?.message_id };
+    }
+    return {
+      ok: false,
+      description: data.result?.description || data.error || 'Broadcast failed',
+    };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Network failure while broadcasting' };
+  }
+}
 
 /**
  * Generates an official Telegram WebApp share or start link

@@ -182,6 +182,60 @@ export default async function handler(req: any, res: any) {
     }
 
     const cleanAppUrl = appUrl.replace(/\/+$/, '');
+    const targetChannel = process.env.TELEGRAM_CHANNEL || '@ApernaAIOfficial';
+
+    // Broadcast command for admin: /broadcast <notes> or /announce <notes>
+    if (text.startsWith('/broadcast') || text.startsWith('/announce') || text.startsWith('/post')) {
+      const customNotes = text.replace(/^\/(broadcast|announce|post)\s*/i, '').trim();
+      const broadcastMsg = `🚀 <b>APERNA AI &amp; MUSIC MIMI ($MIMI) — COMMUNITY UPDATE</b> 🐱✨
+━━━━━━━━━━━━━━━━━━━━━
+
+🔥 <b>Official Announcement:</b>
+${customNotes || 'A fresh high-speed update has been pushed with new YouTube Video &amp; Social tasks! Complete them to earn bonus $MIMI.'}
+
+🎬 <b>Active Bounty Tasks:</b>
+• Watch, Like &amp; Comment on YouTube Videos
+• Subscribe @hashmicrypto1 on YouTube
+• Follow @ApernaAIOfficial &amp; @Hashmi_Crypto on Telegram &amp; Instagram
+• Claim +1,000 $APERNA NFT Genesis Bonus
+
+━━━━━━━━━━━━━━━━━━━━━
+👇 <b>Tap below to launch the Mini App immediately:</b>`;
+
+      const broadcastRes = await sendTelegramRequest('sendMessage', {
+        chat_id: targetChannel,
+        text: broadcastMsg,
+        parse_mode: 'HTML',
+        disable_web_page_preview: false,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🚀 Launch Aperna Mini App 🎧', web_app: { url: cleanAppUrl } },
+            ],
+            [
+              { text: '▶️ Hashmi Crypto YouTube', url: 'https://youtube.com/@hashmicrypto1?si=p8615mTtahK5bA_o' },
+              { text: '👥 Join @ApernaAIOfficial', url: 'https://t.me/ApernaAIOfficial' },
+            ],
+          ],
+        },
+      });
+
+      if (broadcastRes.ok) {
+        await sendTelegramRequest('sendMessage', {
+          chat_id: chatId,
+          text: `✅ <b>Broadcast Successfully Sent!</b>\n\n📢 Channel: <code>${targetChannel}</code>\n🆔 Message ID: <code>${broadcastRes.result?.message_id}</code>\n\n<i>Aapka update channel par live publish ho gaya hai!</i>`,
+          parse_mode: 'HTML',
+        });
+      } else {
+        await sendTelegramRequest('sendMessage', {
+          chat_id: chatId,
+          text: `❌ <b>Broadcast Failed!</b>\n\nTarget Channel: <code>${targetChannel}</code>\nReason: <code>${broadcastRes.description || 'Unknown error'}</code>\n\n💡 <b>Tip:</b> Make sure your bot is an Admin in <code>${targetChannel}</code> with <b>Post Messages</b> permission enabled!`,
+          parse_mode: 'HTML',
+        });
+      }
+
+      return res.status(200).json({ ok: true, broadcast: broadcastRes });
+    }
 
     // Welcome copy with rich Telegram HTML formatting
     const welcomeText = `🎧 <b>Welcome to Music Mimi ($MIMI) Official Airdrop!</b> 🐱✨
