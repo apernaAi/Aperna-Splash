@@ -5,9 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Trophy, Flame, Zap, ShieldCheck, RefreshCw, Star, 
-  Crown, Medal, Award, Sparkles, ExternalLink, Info, CheckCircle2,
-  Wallet, Music, ArrowUpRight, Users, Share2, Send, Copy, Check, Rocket
+  Trophy, Flame, Zap, Sparkles, Info, CheckCircle2,
+  Users, Share2
 } from 'lucide-react';
 import { UserStats, AirdropTask, Language, RankedUser, calculateRankScore } from '../types/airdrop.ts';
 import { listenToLiveLeaderboard, updateUserRankScore } from '../utils/referralCloudService.ts';
@@ -38,8 +37,6 @@ export const RankView: React.FC<Props> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<SortFilter>('score');
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [showGrowthModal, setShowGrowthModal] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>('अभी-अभी (Just now)');
 
   const completedTasksCount = tasks.filter((t) => t.isCompleted).length;
@@ -77,33 +74,10 @@ export const RankView: React.FC<Props> = ({
   const shareCode = stats.userId.replace(/^MIMI_/, '');
   const telegramBotDeepLink = `https://t.me/Musicmimi_bot/app?startapp=ref_${shareCode}`;
 
-  const handleCopyLink = () => {
-    playTapSound();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(telegramBotDeepLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
-
   const handleShareTelegram = () => {
     playTapSound();
     const text = `🎵 म्यूजिक मिमी ($MIMI) ऑफिशियल एयरड्रॉप लाइव है! 🐱✨\nफ्री लूप्स बनाएं, लेवल बढ़ाएं और मेरे साथ लाइव लीडरबोर्ड में मुकाबला करें!\n\n👇 अभी शुरू करें और फ्री 100 $MIMI पाएं:\n${telegramBotDeepLink}`;
     const url = `https://t.me/share/url?url=${encodeURIComponent(telegramBotDeepLink)}&text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleShareWhatsApp = () => {
-    playTapSound();
-    const text = `🎵 म्यूजिक मिमी ($MIMI) ऑफिशियल एयरड्रॉप पर मेरे साथ जुड़ें! फ्री टोकन्स क्लेम करें:\n${telegramBotDeepLink}`;
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleShareTwitter = () => {
-    playTapSound();
-    const text = `🎵 Streaming beats & mining verified $MIMI tokens on @aperna_ai Protocol! Join my music squad on TON:\n${telegramBotDeepLink}\n\n#MIMI #TON #Airdrop #Web3 #Crypto`;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
@@ -224,19 +198,6 @@ export const RankView: React.FC<Props> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Bring Real Users Growth Button */}
-          <button
-            onClick={() => {
-              playTapSound();
-              setShowGrowthModal(true);
-            }}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 font-black text-[10.5px] shadow-[0_0_12px_rgba(244,63,94,0.5)] transition-all active:scale-95 cursor-pointer"
-            title="असली यूज़र्स कैसे लाएं?"
-          >
-            <Rocket className="w-3.5 h-3.5 text-slate-950" />
-            <span>यूज़र्स लाएं</span>
-          </button>
-
           {/* Info Modal Button */}
           <button
             onClick={() => {
@@ -268,14 +229,11 @@ export const RankView: React.FC<Props> = ({
             </p>
             <div className="flex items-center gap-2 mt-2">
               <button
-                onClick={() => {
-                  playTapSound();
-                  setShowGrowthModal(true);
-                }}
+                onClick={handleShareTelegram}
                 className="px-3 py-1.5 rounded-lg bg-cyan-400 text-slate-950 font-black text-[10.5px] shadow active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
                 <Share2 className="w-3.5 h-3.5 text-slate-950" />
-                <span>🚀 शेयर व इनवाइट लिंक</span>
+                <span>{language === 'hi' ? '🚀 टेलीग्राम पर इनवाइट करें' : '🚀 Invite on Telegram'}</span>
               </button>
             </div>
           </div>
@@ -684,132 +642,7 @@ export const RankView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Real Users Viral Growth Modal */}
-      {showGrowthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl bg-gradient-to-b from-[#0b2660] via-[#071946] to-[#030d26] border border-cyan-400/50 p-5 shadow-2xl relative text-slate-100">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20 mb-3">
-              <div className="flex items-center gap-2">
-                <Rocket className="w-5 h-5 text-rose-400" />
-                <h3 className="font-black text-base text-white">
-                  {language === 'hi' ? '🚀 असली यूज़र्स कैसे लाएं?' : 'Bring Real Users Blueprint'}
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowGrowthModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
 
-            <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-              {language === 'hi'
-                ? 'नया एयरड्रॉप वायरल करने का सबसे असरदार तरीका: अपना इनवाइट लिंक शेयर करें और टेलीग्राम कम्युनिटीज में प्रमोट करें!'
-                : 'The most effective way to grow your Web3 airdrop: share your viral referral invite and promote across Telegram groups!'}
-            </p>
-
-            {/* Quick Share Action Buttons */}
-            <div className="flex flex-col gap-2 mb-4">
-              <button
-                onClick={handleShareTelegram}
-                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-xs shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                <span>{language === 'hi' ? 'Telegram पर सीधे शेयर करें' : 'Share to Telegram'}</span>
-              </button>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={handleShareWhatsApp}
-                  className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
-                </button>
-                <button
-                  onClick={handleShareTwitter}
-                  className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 shadow flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>X (Twitter)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Your Invite Link Box */}
-            <div className="bg-[#051336] p-3 rounded-2xl border border-cyan-500/30 mb-4">
-              <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider block mb-1">
-                आपका Telegram Mini App रेफरल लिंक:
-              </span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={telegramBotDeepLink}
-                  className="w-full bg-[#030c24] border border-cyan-500/20 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-slate-200 outline-none select-all"
-                />
-                <button
-                  onClick={handleCopyLink}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-black shrink-0 transition-all cursor-pointer ${
-                    copied
-                      ? 'bg-emerald-500 text-slate-950'
-                      : 'bg-cyan-400 text-slate-950 hover:bg-cyan-300'
-                  }`}
-                >
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-              <span className="text-[9.5px] text-emerald-400 font-bold block mt-1.5">
-                🎁 हर नए दोस्त के जुड़ने पर +100 $MIMI + 10% लाइफटाइम कमीशन!
-              </span>
-            </div>
-
-            {/* Practical Traffic Playbook */}
-            <div className="space-y-2 mb-4 text-xs">
-              <span className="text-[11px] font-black uppercase text-amber-300 block">
-                🎯 1,000+ असली यूज़र्स लाने के 4 तरीके:
-              </span>
-
-              <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20">
-                <span className="font-bold text-cyan-300 block">1. Telegram एयरड्रॉप ग्रुप्स:</span>
-                <p className="text-[10.5px] text-slate-300 mt-0.5">
-                  Telegram के बड़े क्रिप्टो/एयरड्रॉप ग्रुप्स (उदा. @CryptoAirdrops, TON Community) में अपना इनवाइट लिंक व पोस्टर पोस्ट करें।
-                </p>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20">
-                <span className="font-bold text-cyan-300 block">2. Telegram Bot /start ब्रॉडकास्ट:</span>
-                <p className="text-[10.5px] text-slate-300 mt-0.5">
-                  अपने @Musicmimi_bot को अपने चैनल में एडमिन बनाकर अपडेट ब्रॉडकास्ट करें। यूज़र्स सीधे चैट से मिनी ऐप खोलेंगे।
-                </p>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20">
-                <span className="font-bold text-cyan-300 block">3. Adsgram Ad Network:</span>
-                <p className="text-[10.5px] text-slate-300 mt-0.5">
-                  Adsgram.ai पर ₹100-200 का छोटा विज्ञापन चलाकर सैकड़ों वास्तविक Telegram Mini App प्लेयर्स को सीधे ला सकते हैं।
-                </p>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20">
-                <span className="font-bold text-cyan-300 block">4. शुरुआती कम्युनिटी टेस्टनेट सिंक:</span>
-                <p className="text-[10.5px] text-slate-300 mt-0.5">
-                  लीडरबोर्ड को खाली रखने के बजाय "जेनेसिस सिंक" दबाकर शुरुआती टेस्टनेट प्रोड्यूसर्स लोड करें ताकि यूज़र्स को प्रतिस्पर्धा मिले।
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowGrowthModal(false)}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer"
-            >
-              समझ गया (Got It!)
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );
