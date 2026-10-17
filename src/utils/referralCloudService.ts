@@ -93,6 +93,121 @@ export function extractReferralCode(): string | null {
 }
 
 /**
+ * Resolves a referral code or username against Firestore to find the canonical referrer document ID
+ * Supports:
+ * - Direct ID: 'MIMI_6002'
+ * - Raw numeric ID: '6002' -> matches 'MIMI_6002' or '6002'
+ * - 'ref_MIMI_6002' -> matches 'MIMI_6002'
+ * - Telegram username: '@kingpapa' or 'kingpapa'
+ */
+export async function resolveReferrerUserId(codeOrHandle: string): Promise<string | null> {
+  if (!codeOrHandle) return null;
+  const clean = codeOrHandle.trim().replace(/^ref_/, '');
+  if (!clean) return null;
+
+  try {
+    // 1. Direct match by document ID (e.g. MIMI_6002)
+    const directSnap = await getDoc(doc(db, 'users', clean));
+    if (directSnap.exists()) return clean;
+
+    // 2. Try prefixing MIMI_ (e.g. 6002 -> MIMI_6002)
+    if (!clean.startsWith('MIMI_')) {
+      const mimiSnap = await getDoc(doc(db, 'users', `MIMI_${clean}`));
+      if (mimiSnap.exists()) return `MIMI_${clean}`;
+    }
+
+    // 3. Try removing MIMI_ prefix if document is raw ID
+    if (clean.startsWith('MIMI_')) {
+      const rawId = clean.replace(/^MIMI_/, '');
+      const rawSnap = await getDoc(doc(db, 'users', rawId));
+      if (rawSnap.exists()) return rawId;
+    }
+
+    // 4. Match by telegramUsername (e.g. @kingpapa or kingpapa)
+    const handleWithAt = clean.startsWith('@') ? clean : `@${clean}`;
+    const handleWithoutAt = clean.replace(/^@/, '');
+    const qUser = query(collection(db, 'users'), where('telegramUsername', 'in', [handleWithAt, handleWithoutAt]), limit(1));
+    const querySnap = await getDocs(qUser);
+    if (!querySnap.empty) {
+      return querySnap.docs[0].id;
+    }
+  } catch (err) {
+    console.warn('Error resolving referrer user ID:', err);
+  }
+
+  return null;
+}
+
+/**
+ * Looks up existing user in Firestore by connected TON wallet or Telegram identity
+ * Enables seamless account restoration across reloads/devices!
+ */
+export async function lookupUserByWalletOrTelegram(params: {
+  walletAddress?: string | null;
+  telegramUsername?: string | null;
+  telegramId?: string | number | null;
+}): Promise<{ userId: string; name: string; telegramUsername: string; balance: number; recruitsCount: number; commissionEarned: number; avatarUrl?: string } | null> {
+  try {
+    // 1. Check direct Telegram ID
+    if (params.telegramId) {
+      const tgDoc = await getDoc(doc(db, 'users', `MIMI_${params.telegramId}`));
+      if (tgDoc.exists()) {
+        const d = tgDoc.data();
+        return {
+          userId: tgDoc.id,
+          name: d.name,
+          telegramUsername: d.telegramUsername,
+          balance: d.balance || 0,
+          recruitsCount: d.recruitsCount || 0,
+          commissionEarned: d.commissionEarned || 0,
+          avatarUrl: d.avatarUrl,
+        };
+      }
+    }
+
+    // 2. Check Wallet Address (highest confidence - unique per blockchain user)
+    if (params.walletAddress) {
+      const qWallet = query(collection(db, 'users'), where('walletAddress', '==', params.walletAddress), limit(1));
+      const walletSnap = await getDocs(qWallet);
+      if (!walletSnap.empty) {
+        const d = walletSnap.docs[0].data();
+        return {
+          userId: walletSnap.docs[0].id,
+          name: d.name,
+          telegramUsername: d.telegramUsername,
+          balance: d.balance || 0,
+          recruitsCount: d.recruitsCount || 0,
+          commissionEarned: d.commissionEarned || 0,
+          avatarUrl: d.avatarUrl,
+        };
+      }
+    }
+
+    // 3. Check Telegram Username
+    if (params.telegramUsername && params.telegramUsername !== '@mimi_user' && params.telegramUsername !== '@mimi_producer') {
+      const cleanHandle = params.telegramUsername.startsWith('@') ? params.telegramUsername : `@${params.telegramUsername}`;
+      const qUser = query(collection(db, 'users'), where('telegramUsername', '==', cleanHandle), limit(1));
+      const userSnap = await getDocs(qUser);
+      if (!userSnap.empty) {
+        const d = userSnap.docs[0].data();
+        return {
+          userId: userSnap.docs[0].id,
+          name: d.name,
+          telegramUsername: d.telegramUsername,
+          balance: d.balance || 0,
+          recruitsCount: d.recruitsCount || 0,
+          commissionEarned: d.commissionEarned || 0,
+          avatarUrl: d.avatarUrl,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Error looking up user by wallet/telegram:', err);
+  }
+  return null;
+}
+
+/**
  * Register or update the current user in Firestore and link to referrer
  */
 export async function syncUserWithCloud(
@@ -112,7 +227,8 @@ export async function syncUserWithCloud(
     const userSnap = await getDoc(userRef);
 
     // Detected referral code from invite link or session
-    const detectedReferrer = extractReferralCode();
+    const rawDetectedReferrer = extractReferralCode();
+    const resolvedReferrer = rawDetectedReferrer ? await resolveReferrerUserId(rawDetectedReferrer) : null;
     let finalReferrer: string | null = null;
     const score = calculateRankScore({
       level,
@@ -123,8 +239,8 @@ export async function syncUserWithCloud(
 
     if (!userSnap.exists()) {
       // First time user registered
-      if (detectedReferrer && detectedReferrer !== userId) {
-        finalReferrer = detectedReferrer;
+      if (resolvedReferrer && resolvedReferrer !== userId) {
+        finalReferrer = resolvedReferrer;
       }
 
       await setDoc(userRef, {
@@ -158,6 +274,8 @@ export async function syncUserWithCloud(
           referredName: userName || 'Mimi Artist',
           referredUsername: telegramUsername || '@mimi_user',
           referredWallet: walletAddress || null,
+          level: level || 1,
+          avatarUrl: avatarUrl || null,
           bonusEarned: 100,
           commissionEarned: 0,
           status: 'qualified',
@@ -201,18 +319,20 @@ export async function syncUserWithCloud(
         updates.walletAddress = walletAddress;
       }
 
-      if (!data.referrerId && detectedReferrer && detectedReferrer !== userId) {
-        updates.referrerId = detectedReferrer;
-        finalReferrer = detectedReferrer;
+      if (!data.referrerId && resolvedReferrer && resolvedReferrer !== userId) {
+        updates.referrerId = resolvedReferrer;
+        finalReferrer = resolvedReferrer;
 
-        const refDocId = `${detectedReferrer}_${userId}`;
+        const refDocId = `${resolvedReferrer}_${userId}`;
         await setDoc(doc(db, 'referrals', refDocId), {
           id: refDocId,
-          referrerId: detectedReferrer,
+          referrerId: resolvedReferrer,
           referredUserId: userId,
           referredName: userName || data.name || 'Mimi Artist',
           referredUsername: telegramUsername || data.telegramUsername || '@mimi_user',
           referredWallet: walletAddress || data.walletAddress || null,
+          level: level || data.level || 1,
+          avatarUrl: avatarUrl || data.avatarUrl || null,
           bonusEarned: 100,
           commissionEarned: 0,
           status: 'qualified',
@@ -220,7 +340,7 @@ export async function syncUserWithCloud(
           qualifiedAt: new Date().toISOString(),
         }, { merge: true });
 
-        const referrerRef = doc(db, 'users', detectedReferrer);
+        const referrerRef = doc(db, 'users', resolvedReferrer);
         const referrerSnap = await getDoc(referrerRef);
         if (referrerSnap.exists()) {
           await updateDoc(referrerRef, {
@@ -229,6 +349,17 @@ export async function syncUserWithCloud(
             updatedAt: new Date().toISOString(),
           });
         }
+      } else if (finalReferrer) {
+        // Keep referral document in sync with the referred user's latest name, avatar, wallet, and level
+        const refDocId = `${finalReferrer}_${userId}`;
+        setDoc(doc(db, 'referrals', refDocId), {
+          referredName: userName || data.name || 'Mimi Artist',
+          referredUsername: telegramUsername || data.telegramUsername || '@mimi_user',
+          referredWallet: walletAddress || data.walletAddress || null,
+          level: level || data.level || 1,
+          avatarUrl: avatarUrl || data.avatarUrl || null,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch(() => {});
       }
 
       await updateDoc(userRef, updates);
@@ -431,11 +562,17 @@ export async function bindManualReferral(
   currentUserName: string,
   currentUserUsername: string
 ): Promise<{ success: boolean; messageHi: string; messageEn: string; bonus: number }> {
-  const cleanCode = (rawReferrerCode || '').trim().replace(/^ref_/, '');
-  if (!cleanCode) {
-    return { success: false, messageHi: 'अमान्य रेफरल कोड!', messageEn: 'Invalid referral code!', bonus: 0 };
+  const rawCode = (rawReferrerCode || '').trim();
+  if (!rawCode) {
+    return { success: false, messageHi: 'कृपया रेफरल कोड या @यूजरनेम दर्ज करें!', messageEn: 'Please enter referral code or @username!', bonus: 0 };
   }
-  if (cleanCode === currentUserId) {
+
+  const resolvedReferrerId = await resolveReferrerUserId(rawCode);
+  if (!resolvedReferrerId) {
+    return { success: false, messageHi: 'रेफरल कोड या @यूजरनेम डेटाबेस में नहीं मिला!', messageEn: 'Referrer not found in database! Please check code or @username.', bonus: 0 };
+  }
+
+  if (resolvedReferrerId === currentUserId) {
     return { success: false, messageHi: 'आप स्वयं का कोड इस्तेमाल नहीं कर सकते!', messageEn: 'You cannot use your own referral code!', bonus: 0 };
   }
 
@@ -453,12 +590,12 @@ export async function bindManualReferral(
     }
 
     // Link in Firestore
-    const refDocId = `${cleanCode}_${currentUserId}`;
+    const refDocId = `${resolvedReferrerId}_${currentUserId}`;
     await setDoc(
       doc(db, 'referrals', refDocId),
       {
         id: refDocId,
-        referrerId: cleanCode,
+        referrerId: resolvedReferrerId,
         referredUserId: currentUserId,
         referredName: currentUserName || 'Mimi Artist',
         referredUsername: currentUserUsername || '@mimi_user',
@@ -472,7 +609,7 @@ export async function bindManualReferral(
     );
 
     // Increment referrer's recruitsCount and award 100 MIMI
-    const referrerRef = doc(db, 'users', cleanCode);
+    const referrerRef = doc(db, 'users', resolvedReferrerId);
     const referrerSnap = await getDoc(referrerRef);
     if (referrerSnap.exists()) {
       await updateDoc(referrerRef, {
@@ -487,7 +624,7 @@ export async function bindManualReferral(
       userRef,
       {
         userId: currentUserId,
-        referrerId: cleanCode,
+        referrerId: resolvedReferrerId,
         balance: increment(100),
         updatedAt: new Date().toISOString(),
       },
@@ -495,7 +632,7 @@ export async function bindManualReferral(
     );
 
     try {
-      localStorage.setItem('mimi_user_referrer_code', cleanCode);
+      localStorage.setItem('mimi_user_referrer_code', resolvedReferrerId);
     } catch {}
 
     return {

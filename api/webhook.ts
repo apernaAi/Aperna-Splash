@@ -237,11 +237,25 @@ ${customNotes || 'A fresh high-speed update has been pushed with new YouTube Vid
       return res.status(200).json({ ok: true, broadcast: broadcastRes });
     }
 
+    // Extract referral start param if message is e.g. "/start ref_MIMI_6002" or "/start 6002"
+    const startMatch = text.match(/^\/start\s+(.+)$/i);
+    let startParam = '';
+    if (startMatch && startMatch[1]) {
+      startParam = startMatch[1].trim();
+    }
+
+    // Build personalized App launch URL with startapp parameter strictly preserved
+    let launchAppUrl = cleanAppUrl;
+    if (startParam) {
+      const sep = cleanAppUrl.includes('?') ? '&' : '?';
+      launchAppUrl = `${cleanAppUrl}${sep}startapp=${encodeURIComponent(startParam)}&tgWebAppStartParam=${encodeURIComponent(startParam)}#startapp=${encodeURIComponent(startParam)}&tgWebAppStartParam=${encodeURIComponent(startParam)}`;
+    }
+
     // Welcome copy with rich Telegram HTML formatting
     const welcomeText = `🎧 <b>Welcome to Music Mimi ($MIMI) Official Airdrop!</b> 🐱✨
 
 Hey <b>${firstName}</b>! Welcome to the Web3 procedural music protocol on TON.
-
+${startParam ? `\n🎁 <b>Special Referral Invite:</b> You were invited to join! Launch below to claim <b>+100 $MIMI Tokens</b> instantly!\n` : ''}
 💎 <b>What is Music Mimi ($MIMI)?</b>
 • 🎵 <b>Mimi Making:</b> Run 8-Hour music loops to generate exclusive beats
 • 🔄 <b>Merge Loops:</b> Combine loops to unlock high-tier tracks and level up
@@ -256,7 +270,7 @@ Hey <b>${firstName}</b>! Welcome to the Web3 procedural music protocol on TON.
         [
           {
             text: '🐱 Launch Music Mimi App 🎧',
-            web_app: { url: cleanAppUrl },
+            web_app: { url: launchAppUrl },
           },
         ],
         [
@@ -288,7 +302,7 @@ Hey <b>${firstName}</b>! Welcome to the Web3 procedural music protocol on TON.
         [
           {
             text: '🐱 Open Mimi App 🎧',
-            web_app: { url: cleanAppUrl },
+            web_app: { url: launchAppUrl },
           },
         ],
       ],
@@ -318,7 +332,7 @@ Hey <b>${firstName}</b>! Welcome to the Web3 procedural music protocol on TON.
       menu_button: {
         type: 'web_app',
         text: '🐱 Play Mimi 🎧',
-        web_app: { url: cleanAppUrl },
+        web_app: { url: launchAppUrl },
       },
     });
 

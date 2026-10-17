@@ -32,7 +32,30 @@ import {
   creditReferralCommission,
   listenToUserReferrals,
   listenToUserProfile,
+  lookupUserByWalletOrTelegram,
 } from './utils/referralCloudService.ts';
+
+function parseTelegramUserFromRawString(rawString: string) {
+  if (!rawString) return null;
+  try {
+    const clean = rawString.replace(/^[#?]/, '');
+    const params = new URLSearchParams(clean);
+    let userParam = params.get('user');
+    if (!userParam && params.get('tgWebAppData')) {
+      const nested = new URLSearchParams(params.get('tgWebAppData') || '');
+      userParam = nested.get('user');
+    }
+    if (userParam) {
+      const parsed = typeof userParam === 'string' ? JSON.parse(userParam) : userParam;
+      if (parsed && (parsed.id || parsed.username || parsed.first_name)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Error parsing raw telegram user data:', err);
+  }
+  return null;
+}
 
 function getTelegramUser() {
   let permanentId = '';
@@ -49,11 +72,18 @@ function getTelegramUser() {
     } catch {}
   }
 
+  // Check if saved identity is just a placeholder that should be overridden by real Telegram user
+  const isPlaceholderName = !savedName || savedName === 'Mimi Producer' || savedName === 'Mimi Artist';
+  const isPlaceholderHandle = !savedHandle || savedHandle === '@mimi_producer' || savedHandle === '@mimi_user';
+
   if (typeof window !== 'undefined') {
     try {
+      // 1. Check window.Telegram.WebApp.initDataUnsafe
       const tg = (window as unknown as {
         Telegram?: {
           WebApp?: {
+            ready?: () => void;
+            expand?: () => void;
             initDataUnsafe?: {
               user?: { first_name?: string; last_name?: string; username?: string; id?: number; photo_url?: string };
             };
@@ -62,7 +92,27 @@ function getTelegramUser() {
         };
       }).Telegram?.WebApp;
 
-      const tgUser = tg?.initDataUnsafe?.user;
+      if (tg?.ready) tg.ready();
+      if (tg?.expand) tg.expand();
+
+      // Priority 1: Telegram WebApp object
+      let tgUser = tg?.initDataUnsafe?.user;
+
+      // Priority 2: Telegram initData raw query string
+      if (!tgUser && tg?.initData) {
+        tgUser = parseTelegramUserFromRawString(tg.initData);
+      }
+
+      // Priority 3: URL hash (#tgWebAppData=...)
+      if (!tgUser && window.location.hash) {
+        tgUser = parseTelegramUserFromRawString(window.location.hash);
+      }
+
+      // Priority 4: URL query parameters (?tgWebAppData=...)
+      if (!tgUser && window.location.search) {
+        tgUser = parseTelegramUserFromRawString(window.location.search);
+      }
+
       if (tgUser && (tgUser.id || tgUser.username || tgUser.first_name)) {
         const tgFullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || tgUser.username || 'Mimi Artist';
         const formattedHandle = tgUser.username
@@ -70,30 +120,34 @@ function getTelegramUser() {
           : (tgUser.first_name ? `@${tgUser.first_name.toLowerCase().replace(/[^a-z0-9_]/g, '')}` : `@user_${tgUser.id}`);
 
         const finalId = tgUser.id ? `MIMI_${tgUser.id}` : (permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`);
+        const finalName = (!isPlaceholderName && savedName) ? savedName : tgFullName;
+        const finalHandle = (!isPlaceholderHandle && savedHandle) ? savedHandle : formattedHandle;
+        const finalAvatar = savedAvatar || tgUser.photo_url || undefined;
+
         try {
-          if (!permanentId) localStorage.setItem('mimi_permanent_user_id', finalId);
+          localStorage.setItem('mimi_permanent_user_id', finalId);
+          localStorage.setItem('mimi_permanent_user_name', finalName);
+          localStorage.setItem('mimi_permanent_user_username', finalHandle);
+          if (finalAvatar) localStorage.setItem('mimi_permanent_avatar_url', finalAvatar);
         } catch {}
 
         return {
-          name: savedName || tgFullName,
-          username: savedHandle || formattedHandle,
-          avatarUrl: savedAvatar || tgUser.photo_url || undefined,
+          name: finalName,
+          username: finalHandle,
+          avatarUrl: finalAvatar,
           id: finalId,
         };
       }
 
-      // Check URL search params for direct Telegram webview parameter forwarding
+      // Direct URL query parameter fallback (e.g. ?username=myhandle)
       const urlParams = new URLSearchParams(window.location.search);
       const urlTgUser = urlParams.get('username') || urlParams.get('tg_username');
       if (urlTgUser) {
         const cleanHandle = urlTgUser.startsWith('@') ? urlTgUser : `@${urlTgUser}`;
         const finalId = permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`;
-        try {
-          if (!permanentId) localStorage.setItem('mimi_permanent_user_id', finalId);
-        } catch {}
         return {
-          name: savedName || cleanHandle.replace('@', ''),
-          username: savedHandle || cleanHandle,
+          name: (!isPlaceholderName && savedName) ? savedName : cleanHandle.replace('@', ''),
+          username: cleanHandle,
           avatarUrl: savedAvatar || undefined,
           id: finalId,
         };
@@ -102,14 +156,11 @@ function getTelegramUser() {
       console.warn('Error reading Telegram user info:', e);
     }
 
-    if (savedHandle || savedName) {
+    if (!isPlaceholderName || !isPlaceholderHandle) {
       const finalId = permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`;
-      try {
-        if (!permanentId) localStorage.setItem('mimi_permanent_user_id', finalId);
-      } catch {}
       return {
-        name: savedName || (savedHandle ? savedHandle.replace('@', '') : 'Mimi Producer'),
-        username: savedHandle ? (savedHandle.startsWith('@') ? savedHandle : `@${savedHandle}`) : '@mimi_user',
+        name: savedName || 'Mimi Artist',
+        username: savedHandle || '@mimi_user',
         avatarUrl: savedAvatar || undefined,
         id: finalId,
       };
@@ -117,13 +168,9 @@ function getTelegramUser() {
   }
 
   const fallbackId = permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`;
-  try {
-    if (!permanentId && typeof window !== 'undefined') localStorage.setItem('mimi_permanent_user_id', fallbackId);
-  } catch {}
-
   return {
-    name: savedName || 'Mimi Producer',
-    username: savedHandle || '@mimi_producer',
+    name: savedName || 'Mimi Artist',
+    username: savedHandle || '@mimi_user',
     avatarUrl: savedAvatar || undefined,
     id: fallbackId,
   };
@@ -514,14 +561,12 @@ export default function App() {
     ).catch(console.error);
 
     const unsubRefs = listenToUserReferrals(stats.userId, (cloudRefs, totalCommission) => {
-      if (cloudRefs.length > 0 || totalCommission > 0) {
-        setReferrals(cloudRefs);
-        setStats((prev) => ({
-          ...prev,
-          recruitsCount: Math.max(prev.recruitsCount || 0, cloudRefs.length),
-          commissionEarned: Math.max(prev.commissionEarned || 0, totalCommission),
-        }));
-      }
+      setReferrals(cloudRefs);
+      setStats((prev) => ({
+        ...prev,
+        recruitsCount: cloudRefs.length,
+        commissionEarned: Math.max(prev.commissionEarned || 0, totalCommission),
+      }));
     });
 
     const unsubProfile = listenToUserProfile(stats.userId, (profile) => {
@@ -562,6 +607,37 @@ export default function App() {
       unsubProfile();
     };
   }, [stats.userId, stats.name, stats.telegramUsername, stats.avatarUrl]);
+
+  // Account Restoration & Identity Sync: Automatically link to existing user by wallet or Telegram handle
+  useEffect(() => {
+    const activeWallet = stats.walletAddress || tonAddress;
+    const isTempId = stats.userId.startsWith('MIMI_') && stats.userId.length <= 9;
+    lookupUserByWalletOrTelegram({
+      walletAddress: activeWallet,
+      telegramUsername: stats.telegramUsername,
+      telegramId: stats.userId.startsWith('MIMI_') ? stats.userId.replace('MIMI_', '') : undefined,
+    }).then((existing) => {
+      if (existing && existing.userId && existing.userId !== stats.userId) {
+        console.log(`[IDENTITY RESTORE] Seamlessly restored account ${existing.userId} for ${existing.name} (${existing.telegramUsername})`);
+        try {
+          localStorage.setItem('mimi_permanent_user_id', existing.userId);
+          localStorage.setItem('mimi_permanent_user_name', existing.name);
+          localStorage.setItem('mimi_permanent_user_username', existing.telegramUsername);
+          if (existing.avatarUrl) localStorage.setItem('mimi_permanent_avatar_url', existing.avatarUrl);
+        } catch {}
+        setStats((prev) => ({
+          ...prev,
+          userId: existing.userId,
+          name: existing.name || prev.name,
+          telegramUsername: existing.telegramUsername || prev.telegramUsername,
+          balance: Math.max(prev.balance, existing.balance || 0),
+          recruitsCount: Math.max(prev.recruitsCount || 0, existing.recruitsCount || 0),
+          commissionEarned: Math.max(prev.commissionEarned || 0, existing.commissionEarned || 0),
+          avatarUrl: existing.avatarUrl || prev.avatarUrl,
+        }));
+      }
+    }).catch(console.warn);
+  }, [tonAddress, stats.walletAddress, stats.telegramUsername]);
 
   // Auto-bind wallet when Tonkeeper or Telegram Wallet connects via TonConnect
   useEffect(() => {
@@ -659,6 +735,34 @@ export default function App() {
 
   // Wallet Bind: Real-Time Cross-Device Qualification & +100 $MIMI Award
   const handleConnectWallet = (address: string, provider: string) => {
+    lookupUserByWalletOrTelegram({ walletAddress: address }).then((existing) => {
+      if (existing && existing.userId && existing.userId !== stats.userId) {
+        console.log(`[WALLET RESTORE] Restoring account ${existing.userId} for wallet ${address}`);
+        setStats((prev) => ({
+          ...prev,
+          userId: existing.userId,
+          name: existing.name || prev.name,
+          telegramUsername: existing.telegramUsername || prev.telegramUsername,
+          balance: Math.max(prev.balance, existing.balance || 0),
+          recruitsCount: Math.max(prev.recruitsCount || 0, existing.recruitsCount || 0),
+          commissionEarned: Math.max(prev.commissionEarned || 0, existing.commissionEarned || 0),
+          walletAddress: address,
+          walletProvider: provider,
+          isWalletVerified: true,
+        }));
+        try {
+          localStorage.setItem('mimi_permanent_user_id', existing.userId);
+          localStorage.setItem('mimi_permanent_user_name', existing.name);
+          localStorage.setItem('mimi_permanent_user_username', existing.telegramUsername);
+        } catch {}
+        handleCloudWalletConnect(existing.userId, address, provider).catch(console.error);
+        return;
+      }
+      handleCloudWalletConnect(stats.userId, address, provider).catch(console.error);
+    }).catch(() => {
+      handleCloudWalletConnect(stats.userId, address, provider).catch(console.error);
+    });
+
     setStats((prev) => ({
       ...prev,
       walletAddress: address,
@@ -670,8 +774,6 @@ export default function App() {
     if (walletTask && !walletTask.isCompleted) {
       handleCompleteTask('connect-ton-wallet', walletTask.reward);
     }
-    // Qualify referral and award +100 $MIMI to Referrer on Firestore
-    handleCloudWalletConnect(stats.userId, address, provider).catch(console.error);
   };
 
   // Arcade / Beat Rush Daily Play Limits (Protects token economy from infinite tapping)

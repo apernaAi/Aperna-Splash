@@ -101,10 +101,18 @@ export const FrensView: React.FC<Props> = ({
     playTapSound();
     const shareText = encodeURIComponent(
       language === 'hi'
-        ? `🔥 म्यूजिक मिमी ($MIMI) में मेरे साथ जुड़ें और तुरंत 100 $MIMI टोकन प्राप्त करें! \n${referralLink}`
-        : `🔥 Join my music crew in Music Mimi ($MIMI) and claim 100 $MIMI tokens instantly! \n${referralLink}`
+        ? `🔥 म्यूजिक मिमी ($MIMI) में मेरे साथ जुड़ें और तुरंत 100 $MIMI टोकन प्राप्त करें!`
+        : `🔥 Join my music crew in Music Mimi ($MIMI) and claim 100 $MIMI tokens instantly!`
     );
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${shareText}`, '_blank');
+    const fullShareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${shareText}`;
+    if (typeof window !== 'undefined') {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(fullShareUrl);
+        return;
+      }
+    }
+    window.open(fullShareUrl, '_blank');
   };
 
   const handleSaveName = async () => {
@@ -532,60 +540,62 @@ export const FrensView: React.FC<Props> = ({
       </div>
 
       {/* 5. Clean Referral Share Box */}
-      <div className="relative w-full rounded-3xl p-4 sm:p-5 overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#2563eb] to-[#4f46e5] border border-cyan-400/40 shadow-lg text-white space-y-3">
+      <div className="relative w-full rounded-3xl p-4 sm:p-5 overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#2563eb] to-[#4f46e5] border border-cyan-400/40 shadow-lg text-white space-y-3.5">
         <div className="flex items-center justify-between">
-          <h2 className="text-base sm:text-lg font-black tracking-tight drop-shadow-sm">
-            {language === 'hi' ? 'दोस्तों को आमंत्रित करें' : 'Invite Friends to Squad'}
-          </h2>
-          <span className="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded-full border border-white/20 text-cyan-200">
-            +100 $MIMI / Friend
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-cyan-200">
+              <Share2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-black tracking-tight drop-shadow-sm">
+                {language === 'hi' ? 'दोस्त आमंत्रित करें' : 'Invite Friends to Squad'}
+              </h2>
+              <p className="text-[10px] text-cyan-200/90 font-medium">
+                {language === 'hi' ? 'हर असली दोस्त पर टोकन + 10% आजीवन रॉयल्टी कमीशन' : 'Tokens per friend & 10% lifetime royalty'}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full shadow-sm">
+            +100 $MIMI
           </span>
         </div>
 
-        {/* User's Direct Referral Code Card */}
-        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-black/40 border border-white/20">
-          <div>
-            <span className="text-[9px] uppercase font-mono text-cyan-200 block">
-              {language === 'hi' ? 'आपका रेफरल कोड' : 'Your Referral Code'}
-            </span>
-            <span className="text-sm font-black text-amber-300 font-mono">
-              {stats.userId}
-            </span>
+        {/* Highlighted 2-Rule Benefit Strip */}
+        <div className="grid grid-cols-2 gap-2 text-left">
+          <div className="p-2.5 rounded-2xl bg-black/40 border border-white/15">
+            <div className="text-sm font-black text-amber-300 font-mono">+100 $MIMI</div>
+            <div className="text-[10px] text-cyan-200 font-medium mt-0.5">
+              {language === 'hi' ? 'प्रति असली रेफरल बोनस' : 'Per genuine recruit bonus'}
+            </div>
           </div>
-          <button
-            onClick={handleCopyCode}
-            className="px-2.5 py-1.5 rounded-xl bg-cyan-400/30 hover:bg-cyan-400/50 text-white font-bold text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
-          >
-            {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedCode ? (language === 'hi' ? 'कॉपी हुआ' : 'Copied') : (language === 'hi' ? 'कोड कॉपी' : 'Copy Code')}</span>
-          </button>
+          <div className="p-2.5 rounded-2xl bg-black/40 border border-white/15">
+            <div className="text-sm font-black text-emerald-300 font-mono">+10% कमीशन</div>
+            <div className="text-[10px] text-cyan-200 font-medium mt-0.5">
+              {language === 'hi' ? 'दोस्त की कमाई से आजीवन' : 'Lifetime recruit yields'}
+            </div>
+          </div>
         </div>
 
-        {/* Referral Link Box */}
-        <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md rounded-2xl p-1.5 border border-white/25">
-          <div className="flex-1 px-3 text-xs font-mono text-cyan-200 truncate">
-            {referralLink}
-          </div>
-          <button
-            onClick={handleCopyLink}
-            className="p-2 rounded-xl bg-cyan-500/30 hover:bg-cyan-500/50 text-white transition-all active:scale-95 cursor-pointer flex-shrink-0"
-            title="Copy Referral Link"
-          >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4 text-white" />}
-          </button>
-        </div>
-
-        {/* Telegram Share Button */}
+        {/* Primary Action Button: Big Telegram Share Button */}
         <button
           onClick={handleShareTelegram}
-          className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-300 hover:to-blue-200 text-slate-950 font-black text-xs sm:text-sm shadow-[0_0_20px_rgba(0,210,255,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black text-xs sm:text-sm shadow-[0_0_25px_rgba(251,191,36,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
-          <Users className="w-4 h-4 text-blue-900" />
+          <TelegramIcon className="w-4 h-4 text-slate-950" />
           <span>{language === 'hi' ? 'Telegram पर दोस्त आमंत्रित करें (+100 $MIMI)' : 'Invite Friends on Telegram (+100 $MIMI)'}</span>
         </button>
 
-        {/* Small Button to Open Manual Binder */}
-        <div className="text-center pt-1">
+        {/* Secondary Action Button: Copy Invite Link */}
+        <button
+          onClick={handleCopyLink}
+          className="w-full py-2.5 rounded-2xl bg-black/40 hover:bg-black/60 border border-white/25 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+        >
+          {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4 text-cyan-300" />}
+          <span>{copiedLink ? (language === 'hi' ? '✓ रेफरल लिंक कॉपी हो गया!' : '✓ Invite Link Copied!') : (language === 'hi' ? '🔗 रेफरल लिंक कॉपी करें' : '🔗 Copy Invite Link')}</span>
+        </button>
+
+        {/* Friendly Helper for Friends Who Opened Without Invite Link */}
+        <div className="text-center pt-0.5">
           <button
             onClick={() => {
               playTapSound();
@@ -593,8 +603,8 @@ export const FrensView: React.FC<Props> = ({
             }}
             className="text-[11px] text-cyan-200 hover:text-white underline cursor-pointer inline-flex items-center gap-1 font-mono"
           >
-            <Link2 className="w-3 h-3" />
-            <span>{language === 'hi' ? 'दोस्त का रेफरल कोड जोड़ना है? यहाँ क्लिक करें' : "Have a friend's referral code? Click here"}</span>
+            <Link2 className="w-3 h-3 text-cyan-300" />
+            <span>{language === 'hi' ? 'क्या आप बिना लिंक के जुड़े हैं? (दोस्त का @यूजरनेम जोड़ें)' : "Joined without a link? Enter friend's @username"}</span>
           </button>
         </div>
       </div>
@@ -884,8 +894,8 @@ export const FrensView: React.FC<Props> = ({
 
             <p className="text-xs text-cyan-200/80 leading-relaxed">
               {language === 'hi'
-                ? 'यदि आप किसी मित्र के निमंत्रण से जुड़े हैं, तो उनका रेफरल कोड यहाँ दर्ज करें। आपको और आपके मित्र दोनों को +100 $MIMI बोनस मिलेगा!'
-                : "Joined via a friend? Enter their referral code below. Both you and your friend will receive +100 $MIMI bonus!"}
+                ? 'यदि आप किसी मित्र के निमंत्रण से जुड़े हैं, तो अपने दोस्त का Telegram @username या ID दर्ज करें। दोनों को तुरंत +100 $MIMI बोनस मिलेगा!'
+                : "Joined via a friend? Enter your friend's Telegram @username or ID below. Both you and your friend will receive +100 $MIMI bonus!"}
             </p>
 
             <div className="space-y-2">
@@ -893,7 +903,7 @@ export const FrensView: React.FC<Props> = ({
                 type="text"
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
-                placeholder="उदा: MIMI_6002 या ref_MIMI_..."
+                placeholder="उदा: @kingpapa या MIMI_6002"
                 className="w-full bg-black/50 border border-cyan-400/40 rounded-xl px-3.5 py-2.5 text-xs font-mono text-white placeholder-cyan-300/40 outline-none focus:border-cyan-400"
               />
 
@@ -902,7 +912,7 @@ export const FrensView: React.FC<Props> = ({
                 disabled={isBinding || !manualCode.trim()}
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
               >
-                {isBinding ? 'सत्यापित किया जा रहा है...' : (language === 'hi' ? 'कोड लिंक करें (+100 $MIMI)' : 'Link Code (+100 $MIMI)')}
+                {isBinding ? 'सत्यापित किया जा रहा है...' : (language === 'hi' ? 'दोस्त से जुड़ें और +100 $MIMI क्लेम करें' : 'Link Friend & Claim +100 $MIMI')}
               </button>
             </div>
 
