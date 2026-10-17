@@ -115,13 +115,13 @@ export interface UserStats {
 
 export interface AirdropTask {
   id: string;
-  category: 'all' | 'adsgram' | 'liquidity' | 'social' | 'ton' | 'community' | 'partner';
+  category: 'all' | 'adsgram' | 'liquidity' | 'social' | 'ton' | 'community' | 'partner' | 'youtube';
   title: string;
   titleEn: string;
   description: string;
   descriptionEn: string;
   reward: number;
-  iconType: 'adsgram' | 'liquidity' | 'telegram' | 'twitter' | 'wallet' | 'music' | 'users' | 'flame' | 'instagram' | 'discord';
+  iconType: 'adsgram' | 'liquidity' | 'telegram' | 'twitter' | 'wallet' | 'music' | 'users' | 'flame' | 'instagram' | 'discord' | 'youtube';
   actionUrl?: string;
   isCompleted: boolean;
   requiresWallet?: boolean;
@@ -129,6 +129,8 @@ export interface AirdropTask {
   lpBoostTon?: number;
   verificationType?: 'ad_watched' | 'wallet_connected' | 'external_confirmed' | 'auto';
   isStarted?: boolean;
+  requiredWaitSeconds?: number;
+  subType?: 'subscribe' | 'video' | 'telegram' | 'instagram' | 'partner' | 'other';
 }
 
 export interface RealReferral {

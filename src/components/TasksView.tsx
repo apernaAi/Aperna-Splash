@@ -22,7 +22,12 @@ import {
   ShieldCheck,
   ArrowUpRight,
   AlertTriangle,
-  X
+  X,
+  Youtube,
+  ThumbsUp,
+  MessageSquare,
+  Bell,
+  Play
 } from 'lucide-react';
 import { AirdropTask, UserStats, Language } from '../types/airdrop.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
@@ -58,8 +63,9 @@ export const TasksView: React.FC<Props> = ({
   onOpenWallet,
   language,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'social' | 'partner'>('all');
+  const [filter, setFilter] = useState<'all' | 'youtube' | 'social' | 'partner'>('all');
   const [verifyingTaskId, setVerifyingTaskId] = useState<string | null>(null);
+  
   const [visitedTaskIds, setVisitedTaskIds] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('music_mimi_visited_tasks');
@@ -68,6 +74,16 @@ export const TasksView: React.FC<Props> = ({
       return {};
     }
   });
+
+  const [taskStartTimes, setTaskStartTimes] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem('music_mimi_task_start_times');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
   const [activeTaskPrompt, setActiveTaskPrompt] = useState<AirdropTask | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -78,14 +94,14 @@ export const TasksView: React.FC<Props> = ({
 
   const filteredTasks = tasks.filter((t) => {
     if (filter === 'all') return true;
-    if (filter === 'social') return t.category === 'social' || t.category === 'community';
+    if (filter === 'youtube') return t.category === 'youtube' || t.iconType === 'youtube';
+    if (filter === 'social') return t.category === 'social' || t.category === 'community' || t.iconType === 'telegram' || t.iconType === 'instagram' || t.iconType === 'twitter' || t.iconType === 'discord';
+    if (filter === 'partner') return t.category === 'partner' || t.id === 'dolicash-task-offer';
     return t.category === filter;
   });
 
-  const openTasksCount = tasks.filter((t) => !t.isCompleted).length;
-  const totalAvailableReward = tasks
-    .filter((t) => !t.isCompleted)
-    .reduce((acc, curr) => acc + curr.reward, 0);
+  const youtubeTasksCount = tasks.filter((t) => t.category === 'youtube' || t.iconType === 'youtube').length;
+  const socialTasksCount = tasks.filter((t) => t.category === 'social' || t.category === 'community' || t.iconType === 'telegram' || t.iconType === 'instagram').length;
 
   // Daily Streak 24h checks
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -94,6 +110,17 @@ export const TasksView: React.FC<Props> = ({
 
   const currentStreakDay = stats.dailyStreakDay || 1;
   const currentRewardItem = DAILY_REWARDS.find((r) => r.day === currentStreakDay) || DAILY_REWARDS[0];
+
+  const openLinkSafely = (url: string) => {
+    if (typeof window !== 'undefined') {
+      const tg = (window as any)?.Telegram?.WebApp;
+      if (tg && typeof tg.openLink === 'function') {
+        tg.openLink(url);
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    }
+  };
 
   const handleTaskClick = (task: AirdropTask) => {
     if (task.isCompleted || verifyingTaskId) return;
@@ -106,30 +133,24 @@ export const TasksView: React.FC<Props> = ({
       return;
     }
 
-    // 2. Real link tasks (Telegram, Instagram, Twitter/X, Discord, Dolicash offer)
     const isAlreadyStarted = Boolean(visitedTaskIds[task.id]);
+    const nowTime = Date.now();
 
-    if (!isAlreadyStarted) {
-      const updated = { ...visitedTaskIds, [task.id]: true };
-      setVisitedTaskIds(updated);
+    if (!isAlreadyStarted || !taskStartTimes[task.id]) {
+      const updatedVisited = { ...visitedTaskIds, [task.id]: true };
+      const updatedTimes = { ...taskStartTimes, [task.id]: nowTime };
+      setVisitedTaskIds(updatedVisited);
+      setTaskStartTimes(updatedTimes);
       try {
-        localStorage.setItem('music_mimi_visited_tasks', JSON.stringify(updated));
+        localStorage.setItem('music_mimi_visited_tasks', JSON.stringify(updatedVisited));
+        localStorage.setItem('music_mimi_task_start_times', JSON.stringify(updatedTimes));
       } catch {}
 
       if (task.actionUrl) {
-        if (typeof window !== 'undefined') {
-          const tg = (window as any)?.Telegram?.WebApp;
-          if (tg && typeof tg.openLink === 'function') {
-            tg.openLink(task.actionUrl);
-          } else {
-            window.open(task.actionUrl, '_blank', 'noopener,noreferrer');
-          }
-        }
+        openLinkSafely(task.actionUrl);
       }
-      // Open verification prompt modal to explain requirement
       setActiveTaskPrompt(task);
     } else {
-      // User has already visited and clicked the link! Open verification modal to claim
       setActiveTaskPrompt(task);
     }
   };
@@ -152,9 +173,25 @@ export const TasksView: React.FC<Props> = ({
     onClaimDailyStreak(currentStreakDay, currentRewardItem.reward);
   };
 
+  // Helper for task modal timer calculation
+  const getTaskRemainingSeconds = (task: AirdropTask | null) => {
+    if (!task) return 0;
+    const startTime = taskStartTimes[task.id];
+    if (!startTime) return task.requiredWaitSeconds || 15;
+    const requiredWait = task.requiredWaitSeconds || 15;
+    const elapsed = Math.floor((now - startTime) / 1000);
+    return Math.max(0, requiredWait - elapsed);
+  };
+
+  const activeTaskRemaining = getTaskRemainingSeconds(activeTaskPrompt);
+  const activeTaskTotalWait = activeTaskPrompt?.requiredWaitSeconds || 15;
+  const activeTaskElapsed = Math.max(0, activeTaskTotalWait - activeTaskRemaining);
+  const activeTaskProgress = Math.min(100, Math.floor((activeTaskElapsed / activeTaskTotalWait) * 100));
+  const isTimerDone = activeTaskRemaining === 0;
+
   return (
     <div className="w-full flex flex-col gap-4 pb-28 pt-2 px-4 select-none">
-      {/* 1. DOLICASH PARTNER TASK CARD (Updated to 15 $MIMI as requested) */}
+      {/* 1. DOLICASH PARTNER TASK CARD */}
       <div className="relative w-full rounded-3xl p-5 overflow-hidden bg-gradient-to-br from-[#1e1b4b] via-[#0f172a] to-[#020617] border-2 border-amber-400/60 shadow-[0_12px_45px_rgba(245,158,11,0.3)] text-white space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -218,13 +255,7 @@ export const TasksView: React.FC<Props> = ({
                   handleTaskClick(dolicashTask);
                 } else {
                   playTapSound();
-                  const url = 'https://www.fastrsrvr.com/view.php?id=5547102&pub=3366972';
-                  const tg = (window as any)?.Telegram?.WebApp;
-                  if (tg && typeof tg.openLink === 'function') {
-                    tg.openLink(url);
-                  } else {
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                  }
+                  openLinkSafely('https://www.fastrsrvr.com/view.php?id=5547102&pub=3366972');
                 }
               }}
               className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm tracking-wide shadow-[0_0_25px_rgba(245,158,11,0.6)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -352,12 +383,13 @@ export const TasksView: React.FC<Props> = ({
         )}
       </div>
 
-      {/* 4. Filter Segmented Tabs (Clean Social & Partner Filter, No Ads) */}
+      {/* 4. Filter Segmented Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {[
-          { id: 'all', hi: 'सभी कार्य', en: 'All Tasks' },
-          { id: 'social', hi: '🌐 सोशल व कम्युनिटी', en: '🌐 Social & Community' },
-          { id: 'partner', hi: '🔥 Dolicash ऑफर', en: '🔥 Dolicash Offer' },
+          { id: 'all', hi: 'सभी कार्य', en: 'All Tasks', count: tasks.length },
+          { id: 'youtube', hi: '▶️ यूट्यूब वीडियो व चैनल', en: '▶️ YouTube', count: youtubeTasksCount },
+          { id: 'social', hi: '🌐 टेलीग्राम व सोशल', en: '🌐 Telegram & Social', count: socialTasksCount },
+          { id: 'partner', hi: '🔥 Dolicash ऑफर', en: '🔥 Dolicash', count: 1 },
         ].map((tab) => {
           const isActive = filter === tab.id;
           return (
@@ -367,13 +399,16 @@ export const TasksView: React.FC<Props> = ({
                 playTapSound();
                 setFilter(tab.id as typeof filter);
               }}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                 isActive
                   ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-slate-950 shadow-[0_0_12px_rgba(0,210,255,0.5)] font-black scale-102'
                   : 'bg-[#081a3d] text-cyan-200 hover:text-white hover:bg-[#0c2759] border border-cyan-500/20'
               }`}
             >
-              {language === 'hi' ? tab.hi : tab.en}
+              <span>{language === 'hi' ? tab.hi : tab.en}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-slate-900/30 text-slate-950' : 'bg-cyan-500/20 text-cyan-300'}`}>
+                {tab.count}
+              </span>
             </button>
           );
         })}
@@ -388,6 +423,9 @@ export const TasksView: React.FC<Props> = ({
         ) : (
           filteredTasks.map((task) => {
             const isVerifying = verifyingTaskId === task.id;
+            const isVisited = Boolean(visitedTaskIds[task.id]);
+            const remainingSec = getTaskRemainingSeconds(task);
+            const isTaskTimerDone = remainingSec === 0;
 
             return (
               <div
@@ -401,6 +439,13 @@ export const TasksView: React.FC<Props> = ({
               >
                 {/* Left Platform Icon */}
                 <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[#0284c7]/20 border border-cyan-400/30 text-white shadow-sm overflow-hidden">
+                  {task.iconType === 'youtube' && (
+                    <div className="w-8 h-8 rounded-xl bg-[#FF0000] flex items-center justify-center text-white shadow-[0_0_15px_rgba(255,0,0,0.5)] border border-red-400/30">
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                    </div>
+                  )}
                   {task.iconType === 'flame' && (
                     <Flame className="w-6 h-6 text-amber-400 fill-amber-400/20" />
                   )}
@@ -445,19 +490,43 @@ export const TasksView: React.FC<Props> = ({
 
                 {/* Center Content */}
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-extrabold text-white truncate">
-                    {language === 'hi' ? task.title : task.titleEn}
-                  </h4>
-                  <p className="text-xs text-cyan-200/80 truncate mt-0.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h4 className="text-sm font-extrabold text-white truncate">
+                      {language === 'hi' ? task.title : task.titleEn}
+                    </h4>
+                  </div>
+                  
+                  <p className="text-xs text-cyan-200/80 line-clamp-1 mt-0.5">
                     {language === 'hi' ? task.description : task.descriptionEn}
                   </p>
 
-                  {/* Reward badge */}
-                  <div className="flex items-center gap-2 mt-2">
+                  {/* Badges row: Reward & requirement highlight */}
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="inline-flex items-center gap-1.5 text-xs font-black text-amber-300 font-mono">
                       <img src={ASSETS.mimiTokenCoin} alt="$MIMI" className="w-3.5 h-3.5 rounded-full object-cover" />
                       <span>+{task.reward.toLocaleString()} $MIMI</span>
                     </span>
+
+                    {task.subType === 'video' && (
+                      <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                        <Play className="w-2.5 h-2.5 fill-current" />
+                        {language === 'hi' ? 'वॉच + Like + Comment' : 'Watch + Like + Comment'}
+                      </span>
+                    )}
+
+                    {task.subType === 'subscribe' && (
+                      <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                        <Bell className="w-2.5 h-2.5" />
+                        {language === 'hi' ? 'सब्सक्राइब + बेल' : 'Subscribe + Bell'}
+                      </span>
+                    )}
+
+                    {task.subType === 'telegram' && (
+                      <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                        <ShieldCheck className="w-2.5 h-2.5" />
+                        {language === 'hi' ? 'जॉइन अनिवार्य' : 'Join Required'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -474,14 +543,18 @@ export const TasksView: React.FC<Props> = ({
                     </div>
                   ) : (
                     <button className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer ${
-                      visitedTaskIds[task.id]
-                        ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 animate-pulse'
+                      isVisited && isTaskTimerDone
+                        ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.6)]'
+                        : isVisited && !isTaskTimerDone
+                        ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40 font-mono animate-pulse'
                         : 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 hover:from-cyan-300 hover:to-blue-400'
                     }`}>
                       {task.requiresWallet && !stats.walletAddress
                         ? language === 'hi' ? 'वॉलेट जोड़ें' : 'Connect'
-                        : visitedTaskIds[task.id]
-                        ? language === 'hi' ? 'जांचें / क्लेम' : 'Verify'
+                        : isVisited && !isTaskTimerDone
+                        ? `⏳ ${remainingSec}s`
+                        : isVisited && isTaskTimerDone
+                        ? language === 'hi' ? 'क्लेम करें' : 'Claim'
                         : language === 'hi' ? 'शुरू करें' : 'Start'}
                     </button>
                   )}
@@ -499,15 +572,23 @@ export const TasksView: React.FC<Props> = ({
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-cyan-500/20">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center border border-amber-400/30">
-                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shadow-sm ${
+                  activeTaskPrompt.iconType === 'youtube'
+                    ? 'bg-red-500/20 text-red-400 border-red-400/40'
+                    : 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+                }`}>
+                  {activeTaskPrompt.iconType === 'youtube' ? (
+                    <Youtube className="w-4 h-4 text-red-400" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  )}
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-white">
-                    {language === 'hi' ? 'टास्क सत्यापन आवश्यकता' : 'Task Completion Verification'}
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-white truncate max-w-[200px]">
+                    {language === 'hi' ? activeTaskPrompt.title : activeTaskPrompt.titleEn}
                   </h3>
                   <span className="text-[10px] text-cyan-200/80 font-mono">
-                    {activeTaskPrompt.title}
+                    {language === 'hi' ? 'असली सत्यापन आवश्यक' : 'Genuine Verification Required'}
                   </span>
                 </div>
               </div>
@@ -519,21 +600,140 @@ export const TasksView: React.FC<Props> = ({
               </button>
             </div>
 
-            {/* Instruction Warning Box */}
-            <div className="p-3.5 rounded-2xl bg-black/40 border border-amber-400/30 space-y-2">
-              <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-                <span>
+            {/* Dynamic Step-by-Step Instructions based on Task Type */}
+            {activeTaskPrompt.subType === 'video' ? (
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-red-500/30 space-y-2.5">
+                <div className="flex items-center justify-between text-red-300 text-xs font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <Youtube className="w-4 h-4 text-red-400" />
+                    {language === 'hi' ? 'YouTube वीडियो टास्क निर्देश' : 'YouTube Video Task Steps'}
+                  </span>
+                  <span className="text-[10px] font-mono bg-red-500/20 px-2 py-0.5 rounded-full border border-red-400/30">
+                    20s वॉच टाइम
+                  </span>
+                </div>
+                
+                <div className="space-y-1.5 text-[11px] text-slate-200">
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-300 flex items-center justify-center shrink-0 font-bold text-[9px]">1</span>
+                    <span>{language === 'hi' ? 'वीडियो पूरा देखें ताकि असली व्यूज और वॉच टाइम रजिस्टर हो।' : 'Watch the video to register full view & watch time.'}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-300 flex items-center justify-center shrink-0 font-bold text-[9px]">2</span>
+                    <span className="flex items-center gap-1">
+                      <ThumbsUp className="w-3 h-3 text-red-300 inline" />
+                      {language === 'hi' ? 'वीडियो पर 👍 Like बटन दबाएं।' : 'Hit the 👍 Like button on the video.'}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-300 flex items-center justify-center shrink-0 font-bold text-[9px]">3</span>
+                    <span className="flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3 text-red-300 inline" />
+                      {language === 'hi' ? 'कमेंट बॉक्स में एक प्यारा सा कमेंट ड्रॉप करें!' : 'Drop a nice comment in the comment box!'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : activeTaskPrompt.subType === 'subscribe' ? (
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-red-500/30 space-y-2.5">
+                <div className="flex items-center justify-between text-red-300 text-xs font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <Bell className="w-4 h-4 text-red-400" />
+                    {language === 'hi' ? 'चैनल सब्सक्राइब निर्देश' : 'Subscribe Instructions'}
+                  </span>
+                  <span className="text-[10px] font-mono bg-red-500/20 px-2 py-0.5 rounded-full border border-red-400/30">
+                    सब्सक्राइब + बेल
+                  </span>
+                </div>
+                
+                <div className="space-y-1.5 text-[11px] text-slate-200">
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-300 flex items-center justify-center shrink-0 font-bold text-[9px]">1</span>
+                    <span>{language === 'hi' ? '@hashmicrypto1 चैनल पर Subscribe बटन दबाएं।' : 'Click Subscribe on @hashmicrypto1 channel.'}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-300 flex items-center justify-center shrink-0 font-bold text-[9px]">2</span>
+                    <span>{language === 'hi' ? 'नोटिफिकेशन बेल (घंटी 🔔) को All पर सेट करें।' : 'Set notification bell (🔔) to All.'}</span>
+                  </div>
+                </div>
+              </div>
+            ) : activeTaskPrompt.subType === 'telegram' ? (
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-sky-400/30 space-y-2.5">
+                <div className="flex items-center justify-between text-sky-300 text-xs font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-sky-400" />
+                    {language === 'hi' ? 'Telegram चैनल जॉइन अनिवार्य' : 'Telegram Join Required'}
+                  </span>
+                  <span className="text-[10px] font-mono bg-sky-500/20 px-2 py-0.5 rounded-full border border-sky-400/30">
+                    फॉलो चेक
+                  </span>
+                </div>
+                
+                <p className="text-[11px] text-slate-200 leading-relaxed">
                   {language === 'hi'
-                    ? 'असली कार्य पूरा करना अनिवार्य है!'
-                    : 'Must genuinely complete task!'}
+                    ? 'Telegram चैनल @Hashmi_Crypto को अनिवार्य रूप से जॉइन करें। बिना फॉलो/जॉइन किए बैक आने पर टोकन क्लेम नहीं हो पाएगा।'
+                    : 'You must genuinely join the @Hashmi_Crypto Telegram channel. Do not leave without following!'}
+                </p>
+              </div>
+            ) : activeTaskPrompt.subType === 'instagram' ? (
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-pink-500/30 space-y-2.5">
+                <div className="flex items-center justify-between text-pink-300 text-xs font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-pink-400" />
+                    {language === 'hi' ? 'Instagram फॉलो निर्देश' : 'Instagram Follow Steps'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-200 leading-relaxed">
+                  {language === 'hi'
+                    ? '@hashmicrypto प्रोफाइल खोलकर Follow बटन दबाएं और टाइमर समाप्त होने पर टोकन क्लेम करें।'
+                    : 'Open @hashmicrypto profile on Instagram and hit Follow. Claim once the timer finishes.'}
+                </p>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-amber-400/30 space-y-2">
+                <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>
+                    {language === 'hi' ? 'असली कार्य पूरा करना अनिवार्य है!' : 'Must genuinely complete task!'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  {language === 'hi'
+                    ? 'लिंक पर जाकर फॉलो, जॉइन या ऑफर की आवश्यक शर्तें 100% पूरी करें। उसके बाद ही आपको टोकन मिलेंगे।'
+                    : 'Follow the link and complete the genuine follow, join or offer action to unlock your tokens.'}
+                </p>
+              </div>
+            )}
+
+            {/* Countdown Timer & Progress Bar */}
+            <div className="p-3 rounded-2xl bg-cyan-950/40 border border-cyan-500/20 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-cyan-200/80 font-medium flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-cyan-300" />
+                  <span>{language === 'hi' ? 'सत्यापन टाइमर:' : 'Verification Countdown:'}</span>
+                </span>
+                <span className={`font-mono font-black ${isTimerDone ? 'text-emerald-400' : 'text-amber-300'}`}>
+                  {isTimerDone
+                    ? language === 'hi' ? '✓ अनलॉक हो गया' : '✓ Unlocked'
+                    : `${activeTaskRemaining}s`}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                {language === 'hi'
-                  ? 'लिंक पर जाकर फॉलो, जॉइन या ऑफर की आवश्यक शर्तें 100% पूरी करें। उसके बाद ही आपको टोकन मिलेंगे।'
-                  : 'Follow the link and complete the genuine follow, join or offer action to unlock your tokens.'}
-              </p>
+
+              {/* Progress Bar */}
+              <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-cyan-500/30">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 via-cyan-400 to-emerald-400 transition-all duration-1000 ease-linear"
+                  style={{ width: `${activeTaskProgress}%` }}
+                />
+              </div>
+
+              {!isTimerDone && (
+                <p className="text-[10px] text-amber-300/90 text-center font-medium animate-pulse">
+                  {language === 'hi'
+                    ? 'कृपया चैनल / वीडियो लिंक पर रुकें और कार्य पूरा करें...'
+                    : 'Please stay on the channel / video to complete the action...'}
+                </p>
+              )}
             </div>
 
             {/* Reward Summary */}
@@ -547,42 +747,49 @@ export const TasksView: React.FC<Props> = ({
             </div>
 
             {/* Actions */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-1">
               {/* Button 1: Re-open task link if needed */}
               {activeTaskPrompt.actionUrl && (
                 <button
                   onClick={() => {
                     playTapSound();
-                    if (typeof window !== 'undefined') {
-                      const tg = (window as any)?.Telegram?.WebApp;
-                      if (tg && typeof tg.openLink === 'function') {
-                        tg.openLink(activeTaskPrompt.actionUrl!);
-                      } else {
-                        window.open(activeTaskPrompt.actionUrl, '_blank', 'noopener,noreferrer');
-                      }
-                    }
+                    openLinkSafely(activeTaskPrompt.actionUrl!);
                   }}
-                  className="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-cyan-400/30 text-cyan-200 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-cyan-400/30 text-cyan-200 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>
-                    {language === 'hi' ? 'टास्क लिंक फिर से खोलें' : 'Re-open Task / Offer Link'}
+                    {language === 'hi' ? '🔗 लिंक फिर से खोलें' : '🔗 Re-open Link / Video'}
                   </span>
                 </button>
               )}
 
-              {/* Button 2: I have 100% completed it */}
-              <button
-                onClick={() => handleConfirmTaskCompletion(activeTaskPrompt)}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 hover:from-emerald-300 hover:to-teal-200 text-slate-950 font-black text-xs tracking-wider shadow-[0_0_25px_rgba(52,211,153,0.7)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Check className="w-4 h-4 text-slate-950" />
-                <span>
-                  {language === 'hi'
-                    ? `मैंने पूरा कर लिया है (+${activeTaskPrompt.reward} $MIMI क्लेम करें)`
-                    : `I Have Fully Completed (Claim +${activeTaskPrompt.reward} $MIMI)`}
-                </span>
-              </button>
+              {/* Button 2: Verification / Claim button */}
+              {isTimerDone ? (
+                <button
+                  onClick={() => handleConfirmTaskCompletion(activeTaskPrompt)}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 hover:from-emerald-300 hover:to-teal-200 text-slate-950 font-black text-xs tracking-wider shadow-[0_0_25px_rgba(52,211,153,0.7)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                >
+                  <Check className="w-4 h-4 text-slate-950" />
+                  <span>
+                    {language === 'hi'
+                      ? `मैंने पूरा कर लिया है (+${activeTaskPrompt.reward} $MIMI क्लेम करें)`
+                      : `I Have Fully Completed (Claim +${activeTaskPrompt.reward} $MIMI)`}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="w-full py-3.5 rounded-2xl bg-[#092247] border border-cyan-500/30 text-cyan-200/60 font-bold text-xs tracking-wide flex items-center justify-center gap-2 cursor-not-allowed opacity-85"
+                >
+                  <Clock className="w-4 h-4 text-cyan-400 animate-spin" />
+                  <span>
+                    {language === 'hi'
+                      ? `सत्यापन प्रगति: ${activeTaskRemaining}s (लिंक पर रहें)`
+                      : `Verification in progress: ${activeTaskRemaining}s`}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>
