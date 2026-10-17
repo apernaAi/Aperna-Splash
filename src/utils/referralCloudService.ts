@@ -6,6 +6,7 @@
 import {
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   increment,
@@ -13,6 +14,7 @@ import {
   query,
   where,
   limit,
+  orderBy,
   onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -769,6 +771,166 @@ export function listenToLiveLeaderboard(
   } catch (err) {
     console.warn('Could not establish leaderboard listener:', err);
     return () => {};
+  }
+}
+
+export interface NftPoolMember {
+  id: string;
+  userId: string;
+  name: string;
+  telegramUsername: string;
+  avatarUrl?: string;
+  walletAddress?: string | null;
+  slotNumber: number;
+  reservedAt: string;
+  createdAt: string;
+}
+
+/**
+ * Real-time listener for the 1,000 Reserve Pool.
+ * Automatically synchronizes across all users and devices.
+ */
+export function listenToNftReservePool(
+  callback: (data: { count: number; members: NftPoolMember[]; userReservation: NftPoolMember | null }) => void,
+  currentUserId?: string
+) {
+  try {
+    const colRef = collection(db, 'nft_reservations');
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const members: NftPoolMember[] = [];
+        let userRes: NftPoolMember | null = null;
+
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          const item: NftPoolMember = {
+            id: docSnap.id,
+            userId: d.userId || docSnap.id,
+            name: d.name || 'Community Member',
+            telegramUsername: d.telegramUsername || '@user',
+            avatarUrl: d.avatarUrl || undefined,
+            walletAddress: d.walletAddress || null,
+            slotNumber: typeof d.slotNumber === 'number' ? d.slotNumber : 1,
+            reservedAt: d.reservedAt || new Date().toLocaleString(),
+            createdAt: d.createdAt || new Date().toISOString(),
+          };
+          members.push(item);
+          if (currentUserId && (item.userId === currentUserId || docSnap.id === currentUserId)) {
+            userRes = item;
+          }
+        });
+
+        // Sort by slot number ascending
+        members.sort((a, b) => a.slotNumber - b.slotNumber);
+
+        callback({
+          count: members.length,
+          members,
+          userReservation: userRes,
+        });
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'nft_reservations');
+      }
+    );
+  } catch (err) {
+    console.warn('Could not establish nft reserve pool listener:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Reserves a spot in the official 1,000 Reserve Pool in Firestore.
+ */
+export async function reserveNftPoolSlot(member: {
+  userId: string;
+  name: string;
+  telegramUsername: string;
+  avatarUrl?: string;
+  walletAddress?: string | null;
+}): Promise<{ success: boolean; slotNumber: number; message: string; reservedAt: string }> {
+  try {
+    const userResRef = doc(db, 'nft_reservations', member.userId);
+    const existingSnap = await getDoc(userResRef);
+
+    if (existingSnap.exists()) {
+      const data = existingSnap.data();
+      const existingSlot = Number(data.slotNumber) || 1;
+      const existingTime = data.reservedAt || new Date().toLocaleString();
+      return {
+        success: true,
+        slotNumber: existingSlot,
+        message: 'स्लॉट पहले से सुरक्षित है (Slot Already Reserved)',
+        reservedAt: existingTime,
+      };
+    }
+
+    // Get current total count of reservations from Cloud Firestore
+    const colRef = collection(db, 'nft_reservations');
+    const allSnaps = await getDocs(colRef);
+    const currentCount = allSnaps.size;
+
+    if (currentCount >= 1000) {
+      return {
+        success: false,
+        slotNumber: 0,
+        message: 'पूल भर चुका है! (1,000 Pool is Full)',
+        reservedAt: '',
+      };
+    }
+
+    const nextSlot = currentCount + 1;
+    const reservedAt = new Date().toLocaleString();
+    const createdAt = new Date().toISOString();
+
+    const newReservation: Record<string, any> = {
+      id: member.userId,
+      userId: member.userId,
+      name: member.name || 'Community Member',
+      telegramUsername: member.telegramUsername || '@user',
+      slotNumber: nextSlot,
+      walletAddress: member.walletAddress || null,
+      reservedAt,
+      createdAt,
+    };
+    if (member.avatarUrl) {
+      newReservation.avatarUrl = member.avatarUrl;
+    }
+
+    await setDoc(userResRef, newReservation);
+
+    // Also link with user doc
+    try {
+      const userDocRef = doc(db, 'users', member.userId);
+      await setDoc(userDocRef, { hasReservedNftPool: true, nftSlotNumber: nextSlot, updatedAt: createdAt }, { merge: true });
+    } catch {}
+
+    // Cache locally
+    try {
+      localStorage.setItem('mimi_1000_real_user_reservation_v1', JSON.stringify({
+        userId: member.userId,
+        telegramUsername: member.telegramUsername,
+        slotNumber: nextSlot,
+        reservedAt,
+      }));
+      localStorage.setItem('mimi_1000_real_pool_clicks_v1', String(nextSlot));
+    } catch {}
+
+    return {
+      success: true,
+      slotNumber: nextSlot,
+      message: 'सफलतापूर्वक 1,000 पूल में स्लॉट सुरक्षित हो गया!',
+      reservedAt,
+    };
+  } catch (err: any) {
+    console.error('Error reserving slot in cloud pool:', err);
+    return {
+      success: false,
+      slotNumber: 0,
+      message: err?.message || 'स्लॉट रिज़र्व करने में त्रुटि (Reservation failed)',
+      reservedAt: '',
+    };
   }
 }
 

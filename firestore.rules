@@ -28,5 +28,12 @@ service cloud.firestore {
       allow create: if true;
       allow update, delete: if false;
     }
+
+    // 1,000 Early Reserve Pool & NFT whitelist tracking
+    match /nft_reservations/{reservationId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
   }
 }

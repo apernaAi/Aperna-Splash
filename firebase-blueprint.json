@@ -159,6 +159,50 @@
         }
       },
       "required": ["id", "referrerId", "fromUserId", "commissionAmount", "createdAt"]
+    },
+    "NftReservation": {
+      "title": "NftReservation",
+      "description": "Member reservation in the 1,000 Early Pool",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "User ID of reserving member"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Member display name"
+        },
+        "telegramUsername": {
+          "type": "string",
+          "description": "Telegram handle"
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "Member avatar logo"
+        },
+        "walletAddress": {
+          "type": "string",
+          "description": "Connected wallet address"
+        },
+        "slotNumber": {
+          "type": "number",
+          "description": "Sequential slot number (1 to 1000)"
+        },
+        "reservedAt": {
+          "type": "string",
+          "description": "Formatted reservation timestamp"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp"
+        }
+      },
+      "required": ["id", "userId", "slotNumber", "createdAt"]
     }
   },
   "firestore": {
@@ -179,6 +223,12 @@
         "$ref": "#/entities/Commission"
       },
       "description": "10% lifetime commission audit logs"
+    },
+    "/nft_reservations/{reservationId}": {
+      "schema": {
+        "$ref": "#/entities/NftReservation"
+      },
+      "description": "1,000 members reserve pool passes"
     }
   }
 }
