@@ -33,6 +33,20 @@ async function handleMessage(msg) {
 
   console.log(`📩 Received message from [${chatId} | ${firstName}]: "${text}"`);
 
+  let launchUrl = APP_URL;
+  let walletUrl = `${APP_URL}/?tab=wallet`;
+  let beatsUrl = `${APP_URL}/?tab=beats`;
+
+  if (text.startsWith('/start')) {
+    const parts = text.split(/\s+/);
+    if (parts.length > 1 && parts[1]) {
+      const refParam = parts[1].trim();
+      launchUrl = `${APP_URL}/?startapp=${encodeURIComponent(refParam)}`;
+      walletUrl = `${APP_URL}/?tab=wallet&startapp=${encodeURIComponent(refParam)}`;
+      beatsUrl = `${APP_URL}/?tab=beats&startapp=${encodeURIComponent(refParam)}`;
+    }
+  }
+
   const welcomeText = `🎧 <b>Welcome to Music Mimi ($MIMI) Airdrop!</b> 🐱✨
 
 Hey <b>${firstName}</b>! Welcome to the decentralized beat-crafting game on TON!
@@ -51,17 +65,17 @@ Hey <b>${firstName}</b>! Welcome to the decentralized beat-crafting game on TON!
       [
         {
           text: '🐱 Launch Music Mimi App 🎧',
-          web_app: { url: APP_URL },
+          web_app: { url: launchUrl },
         },
       ],
       [
         {
           text: '💎 Connect TON Wallet',
-          web_app: { url: `${APP_URL}/?tab=wallet` },
+          web_app: { url: walletUrl },
         },
         {
           text: '🎵 Music Library',
-          web_app: { url: `${APP_URL}/?tab=beats` },
+          web_app: { url: beatsUrl },
         },
       ],
       [

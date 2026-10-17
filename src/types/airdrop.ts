@@ -81,6 +81,10 @@ export interface UserStats {
   lastAllocationClaimDate?: string;
   lastAllocationClaimTimestamp?: number | null;
   lastDaily50ClaimDate?: string;
+  claimedReferralBonus?: number;
+  lastCommissionClaimDate?: string;
+  claimedCommission?: number;
+  referrerId?: string | null;
   
   // CORE LOOP MAKING MECHANICS (Telegram Mini App)
   loopMakingActive: boolean;

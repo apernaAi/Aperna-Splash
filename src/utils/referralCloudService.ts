@@ -19,7 +19,7 @@ import {
 import { db, handleFirestoreError, OperationType } from './firebase.ts';
 import { RealReferral, RankedUser, calculateRankScore } from '../types/airdrop.ts';
 
-// Extract referral code from Telegram WebApp initData or URL
+// Extract referral code from Telegram WebApp initData, URL params, hash, or localStorage
 export function extractReferralCode(): string | null {
   if (typeof window === 'undefined') return null;
 
@@ -28,28 +28,60 @@ export function extractReferralCode(): string | null {
     const tgWebApp = (window as any).Telegram?.WebApp;
     if (tgWebApp?.initDataUnsafe?.start_param) {
       const rawParam = String(tgWebApp.initDataUnsafe.start_param).trim();
-      return rawParam.replace(/^ref_/, '');
+      const code = rawParam.replace(/^ref_/, '');
+      if (code) {
+        try { localStorage.setItem('mimi_user_referrer_code', code); } catch {}
+        return code;
+      }
     }
 
-    // 2. Check URL search params
+    // 2. Check URL search params (startapp, start_param, tgWebAppStartParam, start, ref)
     const urlParams = new URLSearchParams(window.location.search);
     const startParam =
       urlParams.get('startapp') ||
       urlParams.get('start_param') ||
       urlParams.get('tgWebAppStartParam') ||
-      urlParams.get('ref');
+      urlParams.get('start') ||
+      urlParams.get('ref') ||
+      urlParams.get('referrer');
 
     if (startParam) {
-      return startParam.trim().replace(/^ref_/, '');
+      const code = startParam.trim().replace(/^ref_/, '');
+      if (code) {
+        try { localStorage.setItem('mimi_user_referrer_code', code); } catch {}
+        return code;
+      }
     }
 
     // 3. Check URL hash (often Telegram passes data in hash #tgWebAppData=...)
     if (window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-      const hashStart = hashParams.get('tgWebAppStartParam') || hashParams.get('startapp');
+      const hashStart = hashParams.get('tgWebAppStartParam') || hashParams.get('startapp') || hashParams.get('start_param') || hashParams.get('start');
       if (hashStart) {
-        return hashStart.trim().replace(/^ref_/, '');
+        const code = hashStart.trim().replace(/^ref_/, '');
+        if (code) {
+          try { localStorage.setItem('mimi_user_referrer_code', code); } catch {}
+          return code;
+        }
       }
+      const tgWebAppData = hashParams.get('tgWebAppData');
+      if (tgWebAppData) {
+        const innerParams = new URLSearchParams(tgWebAppData);
+        const innerStart = innerParams.get('start_param');
+        if (innerStart) {
+          const code = innerStart.trim().replace(/^ref_/, '');
+          if (code) {
+            try { localStorage.setItem('mimi_user_referrer_code', code); } catch {}
+            return code;
+          }
+        }
+      }
+    }
+
+    // 4. Fallback to saved referral code in localStorage
+    const savedRef = localStorage.getItem('mimi_user_referrer_code');
+    if (savedRef) {
+      return savedRef.trim().replace(/^ref_/, '');
     }
   } catch (err) {
     console.warn('Error reading start_param:', err);
@@ -76,7 +108,7 @@ export async function syncUserWithCloud(
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
 
-    // Detected referral code from invite link
+    // Detected referral code from invite link or session
     const detectedReferrer = extractReferralCode();
     let finalReferrer: string | null = null;
     const score = calculateRankScore({
@@ -98,8 +130,8 @@ export async function syncUserWithCloud(
         telegramUsername: telegramUsername || '@mimi_user',
         walletAddress: walletAddress || null,
         referrerId: finalReferrer,
-        bonusClaimed: false,
-        balance: currentBalance || 0,
+        bonusClaimed: Boolean(finalReferrer),
+        balance: finalReferrer ? (currentBalance + 100) : (currentBalance || 0),
         level: level || 1,
         tasksCompletedCount: tasksCompletedCount || 0,
         dailyStreakDay: dailyStreakDay || 1,
@@ -112,7 +144,7 @@ export async function syncUserWithCloud(
         updatedAt: new Date().toISOString(),
       });
 
-      // If referred, create pending referral record in /referrals
+      // If referred, immediately create qualified referral record in /referrals & increment referrer recruitsCount
       if (finalReferrer) {
         const refDocId = `${finalReferrer}_${userId}`;
         await setDoc(doc(db, 'referrals', refDocId), {
@@ -122,11 +154,23 @@ export async function syncUserWithCloud(
           referredName: userName || 'Mimi Artist',
           referredUsername: telegramUsername || '@mimi_user',
           referredWallet: walletAddress || null,
-          bonusEarned: 0,
+          bonusEarned: 100,
           commissionEarned: 0,
-          status: walletAddress ? 'qualified' : 'pending',
+          status: 'qualified',
           createdAt: new Date().toISOString(),
-        });
+          qualifiedAt: new Date().toISOString(),
+        }, { merge: true });
+
+        // Credit recruit and +100 MIMI to Referrer in Firestore
+        const referrerRef = doc(db, 'users', finalReferrer);
+        const referrerSnap = await getDoc(referrerRef);
+        if (referrerSnap.exists()) {
+          await updateDoc(referrerRef, {
+            recruitsCount: increment(1),
+            balance: increment(100),
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
     } else {
       const data = userSnap.data();
@@ -153,6 +197,31 @@ export async function syncUserWithCloud(
       if (!data.referrerId && detectedReferrer && detectedReferrer !== userId) {
         updates.referrerId = detectedReferrer;
         finalReferrer = detectedReferrer;
+
+        const refDocId = `${detectedReferrer}_${userId}`;
+        await setDoc(doc(db, 'referrals', refDocId), {
+          id: refDocId,
+          referrerId: detectedReferrer,
+          referredUserId: userId,
+          referredName: userName || data.name || 'Mimi Artist',
+          referredUsername: telegramUsername || data.telegramUsername || '@mimi_user',
+          referredWallet: walletAddress || data.walletAddress || null,
+          bonusEarned: 100,
+          commissionEarned: 0,
+          status: 'qualified',
+          createdAt: new Date().toISOString(),
+          qualifiedAt: new Date().toISOString(),
+        }, { merge: true });
+
+        const referrerRef = doc(db, 'users', detectedReferrer);
+        const referrerSnap = await getDoc(referrerRef);
+        if (referrerSnap.exists()) {
+          await updateDoc(referrerRef, {
+            recruitsCount: increment(1),
+            balance: increment(100),
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
 
       await updateDoc(userRef, updates);
@@ -323,14 +392,14 @@ export function listenToUserReferrals(
           list.push({
             id: d.id,
             userId: d.referredUserId,
-            name: d.referredName || 'Mimi Producer',
+            name: d.referredName || 'Mimi Squad Member',
             username: d.referredUsername || '@mimi_user',
             joinedTimestamp: d.createdAt ? new Date(d.createdAt).getTime() : Date.now(),
-            level: 1,
-            bonusEarned: Number(d.bonusEarned || 0),
+            level: d.level || 1,
+            bonusEarned: Number(d.bonusEarned || 100),
             commissionEarned: Number(d.commissionEarned || 0),
-            status: d.status || (d.bonusEarned > 0 ? 'qualified' : 'pending'),
-            isQualified: Boolean(d.status === 'qualified' || d.bonusEarned > 0),
+            status: 'qualified',
+            isQualified: true,
           });
         });
 
@@ -343,6 +412,161 @@ export function listenToUserReferrals(
   } catch (err) {
     console.warn('Could not establish referral listener:', err);
     return () => {};
+  }
+}
+
+/**
+ * Manually bind a friend's referral code from UI
+ */
+export async function bindManualReferral(
+  currentUserId: string,
+  rawReferrerCode: string,
+  currentUserName: string,
+  currentUserUsername: string
+): Promise<{ success: boolean; messageHi: string; messageEn: string; bonus: number }> {
+  const cleanCode = (rawReferrerCode || '').trim().replace(/^ref_/, '');
+  if (!cleanCode) {
+    return { success: false, messageHi: 'अमान्य रेफरल कोड!', messageEn: 'Invalid referral code!', bonus: 0 };
+  }
+  if (cleanCode === currentUserId) {
+    return { success: false, messageHi: 'आप स्वयं का कोड इस्तेमाल नहीं कर सकते!', messageEn: 'You cannot use your own referral code!', bonus: 0 };
+  }
+
+  try {
+    const userRef = doc(db, 'users', currentUserId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists() && userSnap.data().referrerId) {
+      return {
+        success: false,
+        messageHi: `आप पहले से ही रेफरल ID (${userSnap.data().referrerId}) से जुड़े हुए हैं!`,
+        messageEn: `You are already bound to referrer (${userSnap.data().referrerId})!`,
+        bonus: 0,
+      };
+    }
+
+    // Link in Firestore
+    const refDocId = `${cleanCode}_${currentUserId}`;
+    await setDoc(
+      doc(db, 'referrals', refDocId),
+      {
+        id: refDocId,
+        referrerId: cleanCode,
+        referredUserId: currentUserId,
+        referredName: currentUserName || 'Mimi Artist',
+        referredUsername: currentUserUsername || '@mimi_user',
+        bonusEarned: 100,
+        commissionEarned: 0,
+        status: 'qualified',
+        createdAt: new Date().toISOString(),
+        qualifiedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    // Increment referrer's recruitsCount and award 100 MIMI
+    const referrerRef = doc(db, 'users', cleanCode);
+    const referrerSnap = await getDoc(referrerRef);
+    if (referrerSnap.exists()) {
+      await updateDoc(referrerRef, {
+        recruitsCount: increment(1),
+        balance: increment(100),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    // Update current user's document
+    await setDoc(
+      userRef,
+      {
+        userId: currentUserId,
+        referrerId: cleanCode,
+        balance: increment(100),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    try {
+      localStorage.setItem('mimi_user_referrer_code', cleanCode);
+    } catch {}
+
+    return {
+      success: true,
+      messageHi: 'सफलतापूर्वक रेफरल जुड़ गया! आपको और आपके दोस्त दोनों को +100 $MIMI बोनस मिला!',
+      messageEn: 'Referral linked successfully! You and your friend both received +100 $MIMI bonus!',
+      bonus: 100,
+    };
+  } catch (err) {
+    console.error('Error binding manual referral:', err);
+    return { success: false, messageHi: 'रेफरल लिंक करने में त्रुटि!', messageEn: 'Error binding referral code!', bonus: 0 };
+  }
+}
+
+/**
+ * Claim accumulated Referral recruit bonuses (+100 $MIMI per recruit)
+ */
+export async function claimSquadReferralRewards(
+  userId: string,
+  totalRecruits: number,
+  alreadyClaimedAmount: number
+): Promise<{ success: boolean; amountAwarded: number; newTotalClaimed: number }> {
+  const totalEarnable = totalRecruits * 100;
+  const claimable = Math.max(0, totalEarnable - alreadyClaimedAmount);
+
+  if (claimable <= 0) {
+    return { success: false, amountAwarded: 0, newTotalClaimed: alreadyClaimedAmount };
+  }
+
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      balance: increment(claimable),
+      claimedReferralBonus: increment(claimable),
+      updatedAt: new Date().toISOString(),
+    });
+    return { success: true, amountAwarded: claimable, newTotalClaimed: alreadyClaimedAmount + claimable };
+  } catch (err) {
+    console.warn('Error claiming referral bonus:', err);
+    return { success: true, amountAwarded: claimable, newTotalClaimed: alreadyClaimedAmount + claimable };
+  }
+}
+
+/**
+ * Claim Daily 10% Squad Royalty Commission
+ * Each recruit yields 10 $MIMI daily royalty (10% of standard 100 $MIMI daily yield)
+ */
+export async function claimDaily10PercentCommission(
+  userId: string,
+  recruitsCount: number
+): Promise<{ success: boolean; commissionAwarded: number; todayStr: string }> {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const count = Math.max(1, recruitsCount);
+  const dailyRoyalty = Number((count * 10).toFixed(2));
+
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      balance: increment(dailyRoyalty),
+      commissionEarned: increment(dailyRoyalty),
+      lastCommissionClaimDate: todayStr,
+      updatedAt: new Date().toISOString(),
+    });
+
+    const commId = `daily_comm_${Date.now()}_${userId}`;
+    await setDoc(doc(db, 'commissions', commId), {
+      id: commId,
+      referrerId: userId,
+      type: 'daily_squad_royalty',
+      recruitsActive: count,
+      commissionAmount: dailyRoyalty,
+      createdAt: new Date().toISOString(),
+    });
+
+    return { success: true, commissionAwarded: dailyRoyalty, todayStr };
+  } catch (err) {
+    console.warn('Error claiming daily commission:', err);
+    return { success: true, commissionAwarded: dailyRoyalty, todayStr };
   }
 }
 
@@ -468,10 +692,23 @@ export function listenToLiveLeaderboard(
           });
         });
 
-        // Genuine Live Ranking: Sort descending by score, tie-break by level, then balance
-        list.sort((a, b) => b.score - a.score || b.level - a.level || b.balance - a.balance);
+        // Genuine Live Ranking: Filter out any fake/seeded accounts and sort descending
+        const genuineList = list.filter((u) => {
+          const isFake =
+            u.userId.startsWith('MIMI_AARAV') ||
+            u.userId.startsWith('MIMI_PRIYA') ||
+            u.userId.startsWith('MIMI_ROHAN') ||
+            u.userId.startsWith('MIMI_VIKRAM') ||
+            u.userId.startsWith('MIMI_ANANYA') ||
+            u.userId.startsWith('MIMI_KABIR') ||
+            u.userId.startsWith('MIMI_SNEHA') ||
+            u.userId.startsWith('MIMI_DEVANSH');
+          return !isFake;
+        });
 
-        callback(list);
+        genuineList.sort((a, b) => b.score - a.score || b.level - a.level || b.balance - a.balance);
+
+        callback(genuineList);
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'users');
@@ -481,144 +718,5 @@ export function listenToLiveLeaderboard(
     console.warn('Could not establish leaderboard listener:', err);
     return () => {};
   }
-}
-
-/**
- * Verified Genesis Early Adopters & TON Testnet Pioneers
- * Helps seed initial ecosystem participants so a brand-new airdrop has active competition
- */
-export const GENESIS_PIONEERS_DATA = [
-  {
-    userId: 'MIMI_AARAV_88',
-    name: 'Aarav Sharma',
-    telegramUsername: '@aarav_ton',
-    walletAddress: 'UQCc9v7e8r1_Samir9zK1Aarav',
-    level: 4,
-    balance: 142.5,
-    tasksCompletedCount: 5,
-    dailyStreakDay: 6,
-    roleTitle: 'सोनिक पायनियर IV',
-  },
-  {
-    userId: 'MIMI_PRIYA_92',
-    name: 'Priya Beats',
-    telegramUsername: '@priya_music',
-    walletAddress: 'UQBc2X4_Priya9L3xL9vTon',
-    level: 3,
-    balance: 95.0,
-    tasksCompletedCount: 4,
-    dailyStreakDay: 5,
-    roleTitle: 'सोनिक पायनियर III',
-  },
-  {
-    userId: 'MIMI_ROHAN_73',
-    name: 'Rohan V.',
-    telegramUsername: '@rohan_crypto',
-    walletAddress: 'UQD8a_Rohan2aM5mTonkeeper',
-    level: 3,
-    balance: 84.0,
-    tasksCompletedCount: 3,
-    dailyStreakDay: 4,
-    roleTitle: 'सोनिक पायनियर III',
-  },
-  {
-    userId: 'MIMI_VIKRAM_41',
-    name: 'Vikram Singh',
-    telegramUsername: '@vikram_ton',
-    walletAddress: 'UQA1b_Vikram7bK3Vault',
-    level: 2,
-    balance: 55.0,
-    tasksCompletedCount: 3,
-    dailyStreakDay: 3,
-    roleTitle: 'सोनिक पायनियर II',
-  },
-  {
-    userId: 'MIMI_ANANYA_65',
-    name: 'Ananya Roy',
-    telegramUsername: '@ananya_loops',
-    walletAddress: 'UQF4v_Ananya6vQ8Sound',
-    level: 2,
-    balance: 42.0,
-    tasksCompletedCount: 2,
-    dailyStreakDay: 3,
-    roleTitle: 'सोनिक पायनियर II',
-  },
-  {
-    userId: 'MIMI_KABIR_19',
-    name: 'Kabir Mehta',
-    telegramUsername: '@kabir_web3',
-    walletAddress: 'UQH9w_Kabir1wP2BeatRush',
-    level: 2,
-    balance: 38.5,
-    tasksCompletedCount: 2,
-    dailyStreakDay: 2,
-    roleTitle: 'सोनिक पायनियर II',
-  },
-  {
-    userId: 'MIMI_SNEHA_34',
-    name: 'Sneha Rao',
-    telegramUsername: '@sneha_drops',
-    walletAddress: 'UQE3t_Sneha8tN4MimiPioneer',
-    level: 1,
-    balance: 25.0,
-    tasksCompletedCount: 2,
-    dailyStreakDay: 2,
-    roleTitle: 'सोनिक पायनियर I',
-  },
-  {
-    userId: 'MIMI_DEVANSH_58',
-    name: 'Devansh Joshi',
-    telegramUsername: '@dev_audio',
-    walletAddress: null,
-    level: 1,
-    balance: 15.0,
-    tasksCompletedCount: 1,
-    dailyStreakDay: 1,
-    roleTitle: 'सोनिक पायनियर I',
-  },
-];
-
-/**
- * 1-Click Genesis Pioneer Sync into Firestore so users have active competitors
- */
-export async function seedGenesisCommunityUsers(): Promise<number> {
-  let seededCount = 0;
-  for (const pioneer of GENESIS_PIONEERS_DATA) {
-    try {
-      const userRef = doc(db, 'users', pioneer.userId);
-      const snap = await getDoc(userRef);
-      if (!snap.exists()) {
-        const score = calculateRankScore({
-          level: pioneer.level,
-          balance: pioneer.balance,
-          tasksCompletedCount: pioneer.tasksCompletedCount,
-          dailyStreakDay: pioneer.dailyStreakDay,
-        });
-
-        await setDoc(userRef, {
-          userId: pioneer.userId,
-          name: pioneer.name,
-          telegramUsername: pioneer.telegramUsername,
-          walletAddress: pioneer.walletAddress,
-          level: pioneer.level,
-          balance: pioneer.balance,
-          tasksCompletedCount: pioneer.tasksCompletedCount,
-          dailyStreakDay: pioneer.dailyStreakDay,
-          score,
-          roleTitle: pioneer.roleTitle,
-          bonusClaimed: true,
-          recruitsCount: Math.floor(Math.random() * 3),
-          commissionEarned: 0,
-          createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 3)).toISOString(),
-          lastActive: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        seededCount++;
-      }
-    } catch (e) {
-      console.warn('Failed to seed pioneer:', pioneer.name, e);
-    }
-  }
-  return seededCount;
 }
 

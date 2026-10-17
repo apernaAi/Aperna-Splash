@@ -4,6 +4,7 @@ import { UserStats, Language, getRequiredLoopsForLevel, MUSIC_TRACKS_DATABASE } 
 import { TON_CONFIG } from '../utils/tonService.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
 import { playTurntableStartSound, playClaimRewardSound, playLoopMergeSound, playTapSound, triggerHaptic } from '../utils/audioEngine.ts';
+import { TelegramIcon } from './TelegramIcon.tsx';
 
 interface Props {
   stats: UserStats;
@@ -210,11 +211,16 @@ export const MimiMakingDashboard: React.FC<Props> = ({
                   LIVE
                 </span>
               </div>
-              <span className="text-[10px] text-slate-300 font-mono">
-                {language === 'hi'
-                  ? `लेवल ${stats.level} • ${stats.balance.toFixed(1)} $MIMI • असली लीडरबोर्ड देखें`
-                  : `Level ${stats.level} • ${stats.balance.toFixed(1)} $MIMI • Check Live Board`}
-              </span>
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-300 font-mono mt-0.5">
+                <div className="flex items-center gap-1 text-sky-400 font-bold">
+                  <TelegramIcon className="w-3 h-3 text-[#24A1DE] shrink-0" />
+                  <span>{stats.telegramUsername || '@mimi_user'}</span>
+                </div>
+                <span className="text-slate-500">•</span>
+                <span className="text-amber-300 font-bold">{stats.balance.toFixed(1)} $MIMI</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-cyan-300">Lvl {stats.level}</span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-1 text-cyan-300 font-bold text-xs group-hover:translate-x-0.5 transition-transform">

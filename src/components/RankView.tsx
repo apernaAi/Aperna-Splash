@@ -10,9 +10,10 @@ import {
   Wallet, Music, ArrowUpRight, Users, Share2, Send, Copy, Check, Rocket
 } from 'lucide-react';
 import { UserStats, AirdropTask, Language, RankedUser, calculateRankScore } from '../types/airdrop.ts';
-import { listenToLiveLeaderboard, updateUserRankScore, seedGenesisCommunityUsers } from '../utils/referralCloudService.ts';
+import { listenToLiveLeaderboard, updateUserRankScore } from '../utils/referralCloudService.ts';
 import { playTapSound, playClaimRewardSound } from '../utils/audioEngine.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
+import { TelegramIcon } from './TelegramIcon.tsx';
 
 interface Props {
   stats: UserStats;
@@ -38,8 +39,6 @@ export const RankView: React.FC<Props> = ({
   const [filter, setFilter] = useState<SortFilter>('score');
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showGrowthModal, setShowGrowthModal] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [seedSuccessMsg, setSeedSuccessMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>('अभी-अभी (Just now)');
 
@@ -77,26 +76,6 @@ export const RankView: React.FC<Props> = ({
 
   const shareCode = stats.userId.replace(/^MIMI_/, '');
   const telegramBotDeepLink = `https://t.me/Musicmimi_bot/app?startapp=ref_${shareCode}`;
-
-  const handleSeedGenesis = async () => {
-    playTapSound();
-    setIsSeeding(true);
-    setSeedSuccessMsg(null);
-    try {
-      const seeded = await seedGenesisCommunityUsers();
-      playClaimRewardSound();
-      setSeedSuccessMsg(
-        seeded > 0
-          ? `🎉 ${seeded} जेनेसिस पायनियर्स सफलतापूर्वक सिंक हो गए!`
-          : '✅ जेनेसिस पायनियर्स पहले से ही सक्रिय हैं!'
-      );
-      setTimeout(() => setSeedSuccessMsg(null), 5000);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSeeding(false);
-    }
-  };
 
   const handleCopyLink = () => {
     playTapSound();
@@ -149,8 +128,25 @@ export const RankView: React.FC<Props> = ({
 
   const mergedList = Array.from(allUsersMap.values());
 
+  // Filter out any fake seeded users: strictly REAL users only
+  const realUsersList = mergedList.filter((u) => {
+    const isFakePioneer =
+      u.userId.startsWith('MIMI_AARAV') ||
+      u.userId.startsWith('MIMI_PRIYA') ||
+      u.userId.startsWith('MIMI_ROHAN') ||
+      u.userId.startsWith('MIMI_VIKRAM') ||
+      u.userId.startsWith('MIMI_ANANYA') ||
+      u.userId.startsWith('MIMI_KABIR') ||
+      u.userId.startsWith('MIMI_SNEHA') ||
+      u.userId.startsWith('MIMI_DEVANSH');
+    if (isFakePioneer) return false;
+
+    if (u.userId === stats.userId) return true; // Always keep active user
+    return true;
+  });
+
   // Apply sorting filter
-  const sortedList = [...mergedList].sort((a, b) => {
+  const sortedList = [...realUsersList].sort((a, b) => {
     if (filter === 'level') {
       return b.level - a.level || b.score - a.score || b.balance - a.balance;
     }
@@ -234,22 +230,11 @@ export const RankView: React.FC<Props> = ({
               playTapSound();
               setShowGrowthModal(true);
             }}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 font-black text-[10.5px] shadow-[0_0_12px_rgba(244,63,94,0.5)] transition-all active:scale-95 cursor-pointer animate-pulse"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 font-black text-[10.5px] shadow-[0_0_12px_rgba(244,63,94,0.5)] transition-all active:scale-95 cursor-pointer"
             title="असली यूज़र्स कैसे लाएं?"
           >
             <Rocket className="w-3.5 h-3.5 text-slate-950" />
             <span>यूज़र्स लाएं</span>
-          </button>
-
-          {/* 1-Click Genesis Pioneers Sync Button */}
-          <button
-            onClick={handleSeedGenesis}
-            disabled={isSeeding}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 text-[10px] font-bold transition-all active:scale-95 cursor-pointer"
-            title="प्रारंभिक कम्युनिटी सिंक करें"
-          >
-            <Users className="w-3.5 h-3.5 text-cyan-300" />
-            <span>{isSeeding ? 'सिंक...' : 'जेनेसिस सिंक'}</span>
           </button>
 
           {/* Info Modal Button */}
@@ -266,28 +251,20 @@ export const RankView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Seed Success Toast */}
-      {seedSuccessMsg && (
-        <div className="w-full rounded-2xl bg-emerald-950/90 border border-emerald-400 p-3 mb-3 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-lg animate-fadeIn">
-          <span>{seedSuccessMsg}</span>
-          <button onClick={() => setSeedSuccessMsg(null)} className="text-emerald-400 font-bold ml-2">✕</button>
-        </div>
-      )}
-
-      {/* Brand New Airdrop Invitation Banner when community is early */}
+      {/* 100% Real Telegram Community Invitation Banner */}
       {sortedList.length <= 2 && (
         <div className="w-full rounded-2xl bg-gradient-to-r from-blue-950/80 via-indigo-950/70 to-cyan-950/80 border border-cyan-400/40 p-3.5 mb-3 flex items-start gap-3 shadow-md">
           <div className="w-8 h-8 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center shrink-0 mt-0.5">
-            <Rocket className="w-4 h-4" />
+            <TelegramIcon className="w-4 h-4 text-[#24A1DE]" />
           </div>
           <div className="flex-1">
             <span className="text-xs font-black text-cyan-300 block">
-              {language === 'hi' ? '🌟 नए एयरड्रॉप पर असली यूज़र्स कैसे जुड़ेंगे?' : 'How to Bring Real Users to this Airdrop?'}
+              {language === 'hi' ? '🌟 100% असली टेलीग्राम लीडरबोर्ड' : '100% Real Telegram Leaderboard'}
             </span>
             <p className="text-[11px] text-slate-300 leading-relaxed mt-0.5">
               {language === 'hi'
-                ? 'अभी यह ताज़ा एयरड्रॉप लॉन्च हुआ है। अपने रेफरल लिंक को Telegram ग्रुप्स में शेयर करके असली यूज़र्स लाएं (+100 $MIMI व 10% कमीशन), या ऊपर "जेनेसिस सिंक" दबाकर शुरुआती टेस्टनेट पायनियर्स जोड़ें!'
-                : 'This is a brand new launch! Share your viral referral link on Telegram groups (+100 $MIMI + 10% commission), or tap "जेनेसिस सिंक" to populate initial community pioneers!'}
+                ? 'यहाँ केवल असली टेलीग्राम यूज़र्स ही अपनी रैंक देख सकते हैं। दोस्तों को अपना लिंक भेजें और उन्हें इस लीडरबोर्ड में लाइव मुकाबला करने के लिए बुलाएं!'
+                : 'Only genuine Telegram users appear here. Share your invite link with friends to challenge them on this live board!'}
             </p>
             <div className="flex items-center gap-2 mt-2">
               <button
@@ -295,16 +272,10 @@ export const RankView: React.FC<Props> = ({
                   playTapSound();
                   setShowGrowthModal(true);
                 }}
-                className="px-3 py-1.5 rounded-lg bg-cyan-400 text-slate-950 font-black text-[10.5px] shadow active:scale-95 cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-cyan-400 text-slate-950 font-black text-[10.5px] shadow active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
-                🚀 शेयर व ग्रोथ प्लेबुक खोलें
-              </button>
-              <button
-                onClick={handleSeedGenesis}
-                disabled={isSeeding}
-                className="px-3 py-1.5 rounded-lg bg-blue-600/30 text-cyan-300 border border-cyan-400/40 font-bold text-[10.5px] active:scale-95 cursor-pointer"
-              >
-                ⚡ जेनेसिस सिंक करें
+                <Share2 className="w-3.5 h-3.5 text-slate-950" />
+                <span>🚀 शेयर व इनवाइट लिंक</span>
               </button>
             </div>
           </div>
@@ -344,9 +315,10 @@ export const RankView: React.FC<Props> = ({
                   आप (You)
                 </span>
               </div>
-              <span className="text-xs text-slate-400 font-mono">
-                {stats.telegramUsername || '@mimi_user'}
-              </span>
+              <div className="flex items-center gap-1.5 text-xs text-cyan-200 font-mono">
+                <TelegramIcon className="w-3.5 h-3.5 text-[#229ED9] flex-shrink-0" />
+                <span className="font-semibold">{stats.telegramUsername || '@mimi_user'}</span>
+              </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="px-2 py-0.5 rounded-lg bg-blue-500/20 text-sky-300 border border-blue-400/40 text-[10px] font-bold">
                   🎚️ लेवल {stats.level}
@@ -504,9 +476,10 @@ export const RankView: React.FC<Props> = ({
               <span className="font-bold text-[11px] text-slate-100 truncate max-w-[85px] text-center">
                 {top3[1].name}
               </span>
-              <span className="text-[9px] text-slate-400 font-mono truncate max-w-[80px]">
-                {top3[1].telegramUsername}
-              </span>
+              <div className="flex items-center gap-1 mt-0.5 justify-center max-w-[85px] text-[9.5px] text-slate-300 font-mono truncate">
+                <TelegramIcon className="w-3 h-3 text-[#24A1DE] shrink-0" />
+                <span className="truncate">{top3[1].telegramUsername}</span>
+              </div>
               <div className="mt-1 px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-200 text-[9.5px] font-mono font-black">
                 {top3[1].score.toLocaleString()} pts
               </div>
@@ -534,9 +507,10 @@ export const RankView: React.FC<Props> = ({
               <span className="font-black text-xs text-amber-200 truncate max-w-[95px] text-center">
                 {top3[0].name}
               </span>
-              <span className="text-[9.5px] text-amber-300/80 font-mono truncate max-w-[90px]">
-                {top3[0].telegramUsername}
-              </span>
+              <div className="flex items-center gap-1 mt-0.5 justify-center max-w-[95px] text-[10px] text-amber-300/90 font-mono font-bold truncate">
+                <TelegramIcon className="w-3.5 h-3.5 text-[#24A1DE] shrink-0" />
+                <span className="truncate">{top3[0].telegramUsername}</span>
+              </div>
               <div className="mt-1 px-2 py-0.5 rounded-lg bg-amber-400/30 text-amber-200 text-[10.5px] font-mono font-black shadow-sm">
                 {top3[0].score.toLocaleString()} pts
               </div>
@@ -560,9 +534,10 @@ export const RankView: React.FC<Props> = ({
               <span className="font-bold text-[11px] text-slate-100 truncate max-w-[85px] text-center">
                 {top3[2].name}
               </span>
-              <span className="text-[9px] text-slate-400 font-mono truncate max-w-[80px]">
-                {top3[2].telegramUsername}
-              </span>
+              <div className="flex items-center gap-1 mt-0.5 justify-center max-w-[85px] text-[9.5px] text-slate-400 font-mono truncate">
+                <TelegramIcon className="w-3 h-3 text-[#24A1DE] shrink-0" />
+                <span className="truncate">{top3[2].telegramUsername}</span>
+              </div>
               <div className="mt-1 px-1.5 py-0.5 rounded bg-amber-700/20 text-orange-200 text-[9.5px] font-mono font-black">
                 {top3[2].score.toLocaleString()} pts
               </div>
@@ -626,7 +601,10 @@ export const RankView: React.FC<Props> = ({
                   </div>
 
                   <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                    <span>{user.telegramUsername}</span>
+                    <div className="flex items-center gap-1 text-sky-400 font-bold">
+                      <TelegramIcon className="w-3.5 h-3.5 text-[#24A1DE] shrink-0" />
+                      <span>{user.telegramUsername}</span>
+                    </div>
                     <span className="text-slate-600">•</span>
                     <span className="text-cyan-300 font-bold">Lvl {user.level}</span>
                     <span className="text-slate-600">•</span>

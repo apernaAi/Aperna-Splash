@@ -36,15 +36,58 @@ import {
 
 function getTelegramUser() {
   if (typeof window !== 'undefined') {
-    const tg = (window as unknown as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: { first_name?: string; username?: string; id?: number } } } } }).Telegram?.WebApp?.initDataUnsafe?.user;
-    if (tg) {
+    try {
+      const tg = (window as unknown as {
+        Telegram?: {
+          WebApp?: {
+            initDataUnsafe?: {
+              user?: { first_name?: string; last_name?: string; username?: string; id?: number };
+            };
+            initData?: string;
+          };
+        };
+      }).Telegram?.WebApp;
+
+      const tgUser = tg?.initDataUnsafe?.user;
+      if (tgUser && (tgUser.id || tgUser.username || tgUser.first_name)) {
+        const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || tgUser.username || 'Mimi Artist';
+        const formattedHandle = tgUser.username
+          ? (tgUser.username.startsWith('@') ? tgUser.username : `@${tgUser.username}`)
+          : (tgUser.first_name ? `@${tgUser.first_name.toLowerCase().replace(/[^a-z0-9_]/g, '')}` : `@user_${tgUser.id}`);
+
+        return {
+          name: fullName,
+          username: formattedHandle,
+          id: tgUser.id ? `MIMI_${tgUser.id}` : `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
+        };
+      }
+
+      // Check URL search params for direct Telegram webview parameter forwarding
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTgUser = urlParams.get('username') || urlParams.get('tg_username');
+      if (urlTgUser) {
+        const cleanHandle = urlTgUser.startsWith('@') ? urlTgUser : `@${urlTgUser}`;
+        return {
+          name: cleanHandle.replace('@', ''),
+          username: cleanHandle,
+          id: `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
+        };
+      }
+    } catch (e) {
+      console.warn('Error reading Telegram user info:', e);
+    }
+
+    const savedHandle = localStorage.getItem('music_mimi_tg_username');
+    const savedName = localStorage.getItem('music_mimi_tg_name');
+    if (savedHandle) {
       return {
-        name: tg.first_name || 'Mimi Artist',
-        username: tg.username ? `@${tg.username}` : '@mimi_user',
-        id: tg.id ? `MIMI_${tg.id}` : `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
+        name: savedName || savedHandle.replace('@', ''),
+        username: savedHandle.startsWith('@') ? savedHandle : `@${savedHandle}`,
+        id: `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
       };
     }
   }
+
   return {
     name: 'Mimi Producer',
     username: '@mimi_producer',
@@ -70,6 +113,8 @@ function createInitialStats(): UserStats {
     usdConversionRate: 0.005, // 1 $MIMI = $0.005 USD
     beatsStreamed: 0,
     recruitsCount: 0,
+    claimedReferralBonus: 0,
+    commissionEarned: 0.0,
     daysActive: 1,
     walletAddress: null,
     walletProvider: null,
@@ -253,6 +298,8 @@ export default function App() {
           // Normalize balance to only real mined tokens
           const realMined = Number(((parsed.inAppBalance || 0) + (parsed.onChainBalance || 0)).toFixed(2));
           parsed.balance = realMined;
+          parsed.recruitsCount = parsed.recruitsCount || 0;
+          parsed.commissionEarned = parsed.commissionEarned || 0.0;
           return parsed;
         } else {
           console.warn('Z+ Security Alert: LocalStorage tamper detected. Resetting to verified initial state.');
@@ -322,8 +369,8 @@ export default function App() {
         setReferrals(cloudRefs);
         setStats((prev) => ({
           ...prev,
-          recruitsCount: cloudRefs.filter((r) => r.isQualified).length,
-          commissionEarned: totalCommission,
+          recruitsCount: Math.max(prev.recruitsCount || 0, cloudRefs.length),
+          commissionEarned: Math.max(prev.commissionEarned || 0, totalCommission),
         }));
       }
     });

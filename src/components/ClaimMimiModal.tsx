@@ -51,9 +51,9 @@ export const ClaimMimiModal: React.FC<Props> = ({
 
   const isWalletConnected = Boolean(stats.walletAddress);
   const todayDateStr = new Date().toISOString().slice(0, 10);
-  const alreadyClaimedToday = stats.lastAllocationClaimDate === todayDateStr;
+  const alreadyClaimedToday = stats.lastDaily50ClaimDate === todayDateStr || stats.lastAllocationClaimDate === todayDateStr;
   const currentBalance = stats.balance || 0;
-  const doubledAmount = Number((currentBalance * 2).toFixed(2));
+  const DAILY_COIN_REWARD = 50;
   const claimableAmount = stats.inAppBalance > 0 ? stats.inAppBalance : stats.balance;
   const currentClaimStatus = stats.claimStatus || (stats.onChainBalance > 0 ? 'approved' : 'unclaimed');
 
@@ -72,16 +72,8 @@ export const ClaimMimiModal: React.FC<Props> = ({
     if (alreadyClaimedToday) {
       alert(
         language === 'hi'
-          ? 'आप आज का 2x आवंटन पहले ही क्लेम कर चुके हैं! अगला 2x क्लेम कल उपलब्ध होगा।'
-          : 'You have already claimed today 2x allocation boost! Next claim available tomorrow.'
-      );
-      return;
-    }
-    if (currentBalance <= 0) {
-      alert(
-        language === 'hi'
-          ? 'आपके पास क्लेम करने के लिए कोई $MIMI टोकन नहीं है। पहले टास्क या म्यूजिक लूप्स पूरे करें!'
-          : 'You do not have any $MIMI tokens to double yet. Complete tasks or loops first!'
+          ? 'आप आज का 50 $MIMI क्लेम पहले ही कर चुके हैं! अगला 50 कॉइन क्लेम कल उपलब्ध होगा।'
+          : 'You have already claimed today 50 $MIMI coins! Next claim available tomorrow.'
       );
       return;
     }
@@ -102,19 +94,20 @@ export const ClaimMimiModal: React.FC<Props> = ({
         simulatedHash += hexChars[Math.floor(Math.random() * hexChars.length)];
       }
 
-      const newDoubledBalance = Number((currentBalance * 2).toFixed(2));
+      const newInApp = Number(((stats.inAppBalance || 0) + DAILY_COIN_REWARD).toFixed(2));
+      const newTotal = Number(((stats.balance || 0) + DAILY_COIN_REWARD).toFixed(2));
 
       onUpdateStats({
         ...stats,
         claimStatus: 'approved',
         claimTxHash: simulatedHash,
-        claimAmount: newDoubledBalance,
+        claimAmount: DAILY_COIN_REWARD,
         claimTimestamp: Date.now(),
         lastAllocationClaimDate: todayDateStr,
         lastAllocationClaimTimestamp: Date.now(),
-        inAppBalance: newDoubledBalance,
-        onChainBalance: newDoubledBalance,
-        balance: newDoubledBalance,
+        lastDaily50ClaimDate: todayDateStr,
+        inAppBalance: newInApp,
+        balance: newTotal,
       });
     }, 1200);
   };
@@ -238,15 +231,15 @@ export const ClaimMimiModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Indicator 2: Daily 2x Status */}
+          {/* Indicator 2: Daily 50 Coin Status */}
           <div className="p-2.5 rounded-xl bg-black/40 border border-cyan-500/20 flex flex-col justify-between">
-            <span className="text-[10px] text-cyan-300/70">{language === 'hi' ? 'दैनिक 2x बूस्ट' : 'Daily 2x Boost'}</span>
+            <span className="text-[10px] text-cyan-300/70">{language === 'hi' ? 'दैनिक 50 कॉइन क्लेम' : 'Daily 50 Coins Claim'}</span>
             <div className="flex items-center gap-1.5 mt-1">
               <div className={`w-2 h-2 rounded-full ${alreadyClaimedToday ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-amber-400 shadow-[0_0_6px_#fbbf24] animate-pulse'}`} />
               <span className={`text-[11px] font-bold ${alreadyClaimedToday ? 'text-emerald-300' : 'text-amber-300'}`}>
                 {alreadyClaimedToday
-                  ? (language === 'hi' ? 'आज पूरा हुआ ✓' : 'Claimed Today ✓')
-                  : (language === 'hi' ? 'उपलब्ध (1x/दिन)' : 'Available (1x/day)')}
+                  ? (language === 'hi' ? 'आज पूरा हुआ (+50 $MIMI) ✓' : 'Claimed Today (+50 $MIMI) ✓')
+                  : (language === 'hi' ? 'उपलब्ध (+50 $MIMI) [1x/दिन]' : 'Available (+50 $MIMI) [1x/day]')}
               </span>
             </div>
           </div>
@@ -311,14 +304,14 @@ export const ClaimMimiModal: React.FC<Props> = ({
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>
                   {language === 'hi'
-                    ? '✓ आज का 2x क्लेम पूरा हो चुका है · कल वापस आएँ'
-                    : '✓ Today 2x Boost Claimed · Return Tomorrow'}
+                    ? '✓ आज का 50 $MIMI क्लेम पूरा हो चुका है · कल वापस आएँ'
+                    : '✓ Today 50 $MIMI Claimed · Return Tomorrow'}
                 </span>
               </button>
               <p className="text-[10px] text-cyan-200/70 text-center font-mono">
                 {language === 'hi'
-                  ? 'दैनिक सुरक्षा: 2x टोकन आवंटन क्लेम दिन में केवल एक बार ही किया जा सकता है।'
-                  : 'Daily rule: 2x token allocation boost can be claimed only once per day.'}
+                  ? 'दैनिक सुरक्षा: 50 टोकन क्लेम दिन में केवल एक बार ही किया जा सकता है।'
+                  : 'Daily rule: 50 $MIMI tokens can be claimed only once per day.'}
               </p>
             </div>
           ) : (
@@ -330,15 +323,15 @@ export const ClaimMimiModal: React.FC<Props> = ({
               {isSubmitting ? (
                 <>
                   <Clock className="w-4 h-4 animate-spin text-slate-950" />
-                  <span>{language === 'hi' ? '2x आवंटन सत्यापन जारी...' : 'Verifying 2x Allocation...'}</span>
+                  <span>{language === 'hi' ? '50 $MIMI क्लेम सत्यापन जारी...' : 'Verifying 50 $MIMI Claim...'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-slate-950" />
                   <span>
                     {language === 'hi'
-                      ? `🔥 2x आवंटन क्लेम करें (${doubledAmount.toLocaleString()} $MIMI) [दैनिक 1 बार]`
-                      : `🔥 Claim 2x Allocation (${doubledAmount.toLocaleString()} $MIMI) [1x Daily]`}
+                      ? '🎁 दैनिक 50 $MIMI क्लेम करें [दिन में 1 बार]'
+                      : '🎁 Claim Daily 50 $MIMI Coins [1x Daily]'}
                   </span>
                 </>
               )}
