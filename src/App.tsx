@@ -35,13 +35,27 @@ import {
 } from './utils/referralCloudService.ts';
 
 function getTelegramUser() {
+  let permanentId = '';
+  let savedName = '';
+  let savedHandle = '';
+  let savedAvatar = '';
+
+  if (typeof window !== 'undefined') {
+    try {
+      permanentId = localStorage.getItem('mimi_permanent_user_id') || '';
+      savedName = localStorage.getItem('mimi_permanent_user_name') || localStorage.getItem('music_mimi_tg_name') || '';
+      savedHandle = localStorage.getItem('mimi_permanent_user_username') || localStorage.getItem('music_mimi_tg_username') || '';
+      savedAvatar = localStorage.getItem('mimi_permanent_avatar_url') || '';
+    } catch {}
+  }
+
   if (typeof window !== 'undefined') {
     try {
       const tg = (window as unknown as {
         Telegram?: {
           WebApp?: {
             initDataUnsafe?: {
-              user?: { first_name?: string; last_name?: string; username?: string; id?: number };
+              user?: { first_name?: string; last_name?: string; username?: string; id?: number; photo_url?: string };
             };
             initData?: string;
           };
@@ -50,15 +64,21 @@ function getTelegramUser() {
 
       const tgUser = tg?.initDataUnsafe?.user;
       if (tgUser && (tgUser.id || tgUser.username || tgUser.first_name)) {
-        const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || tgUser.username || 'Mimi Artist';
+        const tgFullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || tgUser.username || 'Mimi Artist';
         const formattedHandle = tgUser.username
           ? (tgUser.username.startsWith('@') ? tgUser.username : `@${tgUser.username}`)
           : (tgUser.first_name ? `@${tgUser.first_name.toLowerCase().replace(/[^a-z0-9_]/g, '')}` : `@user_${tgUser.id}`);
 
+        const finalId = tgUser.id ? `MIMI_${tgUser.id}` : (permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`);
+        try {
+          if (!permanentId) localStorage.setItem('mimi_permanent_user_id', finalId);
+        } catch {}
+
         return {
-          name: fullName,
-          username: formattedHandle,
-          id: tgUser.id ? `MIMI_${tgUser.id}` : `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
+          name: savedName || tgFullName,
+          username: savedHandle || formattedHandle,
+          avatarUrl: savedAvatar || tgUser.photo_url || undefined,
+          id: finalId,
         };
       }
 
@@ -67,41 +87,56 @@ function getTelegramUser() {
       const urlTgUser = urlParams.get('username') || urlParams.get('tg_username');
       if (urlTgUser) {
         const cleanHandle = urlTgUser.startsWith('@') ? urlTgUser : `@${urlTgUser}`;
+        const finalId = permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`;
+        try {
+          if (!permanentId) localStorage.setItem('mimi_permanent_user_id', finalId);
+        } catch {}
         return {
-          name: cleanHandle.replace('@', ''),
-          username: cleanHandle,
-          id: `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
+          name: savedName || cleanHandle.replace('@', ''),
+          username: savedHandle || cleanHandle,
+          avatarUrl: savedAvatar || undefined,
+          id: finalId,
         };
       }
     } catch (e) {
       console.warn('Error reading Telegram user info:', e);
     }
 
-    const savedHandle = localStorage.getItem('music_mimi_tg_username');
-    const savedName = localStorage.getItem('music_mimi_tg_name');
-    if (savedHandle) {
+    if (savedHandle || savedName) {
+      const finalId = permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`;
+      try {
+        if (!permanentId) localStorage.setItem('mimi_permanent_user_id', finalId);
+      } catch {}
       return {
-        name: savedName || savedHandle.replace('@', ''),
-        username: savedHandle.startsWith('@') ? savedHandle : `@${savedHandle}`,
-        id: `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
+        name: savedName || (savedHandle ? savedHandle.replace('@', '') : 'Mimi Producer'),
+        username: savedHandle ? (savedHandle.startsWith('@') ? savedHandle : `@${savedHandle}`) : '@mimi_user',
+        avatarUrl: savedAvatar || undefined,
+        id: finalId,
       };
     }
   }
 
+  const fallbackId = permanentId || `MIMI_${Math.floor(1000 + Math.random() * 9000)}`;
+  try {
+    if (!permanentId && typeof window !== 'undefined') localStorage.setItem('mimi_permanent_user_id', fallbackId);
+  } catch {}
+
   return {
-    name: 'Mimi Producer',
-    username: '@mimi_producer',
-    id: `MIMI_${Math.floor(1000 + Math.random() * 9000)}`,
+    name: savedName || 'Mimi Producer',
+    username: savedHandle || '@mimi_producer',
+    avatarUrl: savedAvatar || undefined,
+    id: fallbackId,
   };
 }
 
-// FRESH ZERO-BALANCE DEFAULT STATE
+// FRESH ZERO-BALANCE DEFAULT STATE WITH PERMANENT USER RECOVERY
 function createInitialStats(): UserStats {
   const tg = getTelegramUser();
   return {
     userId: tg.id,
     name: tg.name,
     telegramUsername: tg.username,
+    avatarUrl: tg.avatarUrl,
     protocolId: tg.id,
     level: 1,
     highestLevel: 1,
@@ -386,9 +421,17 @@ export default function App() {
   // Fresh User Stats starting at 0 balance for all users with Z+ Integrity Verification
   const [stats, setStats] = useState<UserStats>(() => {
     try {
-      const saved = localStorage.getItem('music_mimi_stats_v7_real_lp');
+      const saved = localStorage.getItem('music_mimi_stats_v7_real_lp') || localStorage.getItem('music_mimi_stats_v6');
+      const persistentName = localStorage.getItem('mimi_permanent_user_name') || localStorage.getItem('music_mimi_tg_name');
+      const persistentHandle = localStorage.getItem('mimi_permanent_user_username') || localStorage.getItem('music_mimi_tg_username');
+      const persistentAvatar = localStorage.getItem('mimi_permanent_avatar_url');
+
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (persistentName) parsed.name = persistentName;
+        if (persistentHandle) parsed.telegramUsername = persistentHandle;
+        if (persistentAvatar) parsed.avatarUrl = persistentAvatar;
+
         // Verify local storage tamper proofing
         if (verifyLocalStorageIntegrity(parsed)) {
           // Clear legacy 10 fake on-chain balance if not genuine claim
@@ -402,7 +445,12 @@ export default function App() {
           parsed.commissionEarned = parsed.commissionEarned || 0.0;
           return parsed;
         } else {
-          console.warn('Z+ Security Alert: LocalStorage tamper detected. Resetting to verified initial state.');
+          console.warn('Z+ Security Alert: Balance check triggered. Preserving verified profile identity.');
+          const initial = createInitialStats();
+          if (persistentName) initial.name = persistentName;
+          if (persistentHandle) initial.telegramUsername = persistentHandle;
+          if (persistentAvatar) initial.avatarUrl = persistentAvatar;
+          return initial;
         }
       }
     } catch {}
@@ -449,7 +497,7 @@ export default function App() {
     localStorage.setItem('music_mimi_refs_v7_real_lp', JSON.stringify(referrals));
   }, [referrals]);
 
-  // Real-Time Cloud Firestore Sync for Cross-Device Referrals & 10% Commission
+  // Real-Time Cloud Firestore Sync for Cross-Device Referrals, Identity & 10% Commission
   useEffect(() => {
     const completedTasksCount = tasks.filter((t) => t.isCompleted).length;
     syncUserWithCloud(
@@ -461,7 +509,8 @@ export default function App() {
       stats.level,
       completedTasksCount,
       stats.dailyStreakDay || 1,
-      stats.roleTitle
+      stats.roleTitle,
+      stats.avatarUrl || null
     ).catch(console.error);
 
     const unsubRefs = listenToUserReferrals(stats.userId, (cloudRefs, totalCommission) => {
@@ -476,21 +525,43 @@ export default function App() {
     });
 
     const unsubProfile = listenToUserProfile(stats.userId, (profile) => {
-      if (profile.balance !== undefined) {
-        setStats((prev) => ({
+      setStats((prev) => {
+        const nextName = (profile.name && profile.name !== 'Mimi Producer') ? profile.name : prev.name;
+        const nextUsername = profile.telegramUsername || prev.telegramUsername;
+        const nextAvatar = profile.avatarUrl !== undefined ? (profile.avatarUrl || undefined) : prev.avatarUrl;
+
+        // Keep localStorage updated with confirmed cloud values so reloads never lose custom changes
+        try {
+          if (profile.name && profile.name !== 'Mimi Producer') {
+            localStorage.setItem('mimi_permanent_user_name', profile.name);
+            localStorage.setItem('music_mimi_tg_name', profile.name);
+          }
+          if (profile.telegramUsername) {
+            localStorage.setItem('mimi_permanent_user_username', profile.telegramUsername);
+            localStorage.setItem('music_mimi_tg_username', profile.telegramUsername);
+          }
+          if (profile.avatarUrl) {
+            localStorage.setItem('mimi_permanent_avatar_url', profile.avatarUrl);
+          }
+        } catch {}
+
+        return {
           ...prev,
+          name: nextName,
+          telegramUsername: nextUsername,
+          avatarUrl: nextAvatar,
           balance: profile.balance !== undefined ? profile.balance : prev.balance,
           recruitsCount: profile.recruitsCount !== undefined ? profile.recruitsCount : prev.recruitsCount,
           commissionEarned: profile.commissionEarned !== undefined ? profile.commissionEarned : prev.commissionEarned,
-        }));
-      }
+        };
+      });
     });
 
     return () => {
       unsubRefs();
       unsubProfile();
     };
-  }, [stats.userId]);
+  }, [stats.userId, stats.name, stats.telegramUsername, stats.avatarUrl]);
 
   // Auto-bind wallet when Tonkeeper or Telegram Wallet connects via TonConnect
   useEffect(() => {
@@ -670,6 +741,9 @@ export default function App() {
         onOpenNftPage={() => setActiveTab('nft')}
         onOpenSecurityModal={() => setIsSecurityModalOpen(true)}
         onOpenRankPage={() => setActiveTab('rank')}
+        onOpenProfile={() => setActiveTab('profile')}
+        userAvatarUrl={stats.avatarUrl}
+        userName={stats.name}
         activeTab={activeTab}
         onBack={() => setActiveTab('beats')}
       />

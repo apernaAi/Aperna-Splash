@@ -17,6 +17,7 @@ import {
   Flame,
   CheckCircle2,
   TrendingUp,
+  Camera,
 } from 'lucide-react';
 import { UserStats, RealReferral, Language } from '../types/airdrop.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
@@ -26,8 +27,10 @@ import {
   bindManualReferral,
   claimSquadReferralRewards,
   claimDaily10PercentCommission,
+  updateUserProfileData,
 } from '../utils/referralCloudService.ts';
 import { TelegramIcon } from './TelegramIcon.tsx';
+import { ProfileAvatarModal } from './ProfileAvatarModal.tsx';
 
 interface Props {
   stats: UserStats;
@@ -47,6 +50,7 @@ export const FrensView: React.FC<Props> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [tempName, setTempName] = useState(stats.name);
   const [tempUsername, setTempUsername] = useState(stats.telegramUsername || '@mimi_user');
   const todayDateStr = new Date().toISOString().slice(0, 10);
@@ -103,16 +107,28 @@ export const FrensView: React.FC<Props> = ({
     window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${shareText}`, '_blank');
   };
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     const cleanName = tempName.trim() || stats.name;
     const cleanHandle = tempUsername.trim()
       ? (tempUsername.trim().startsWith('@') ? tempUsername.trim() : `@${tempUsername.trim()}`)
       : (stats.telegramUsername || '@mimi_user');
 
     if (typeof window !== 'undefined') {
+      localStorage.setItem('mimi_permanent_user_name', cleanName);
+      localStorage.setItem('mimi_permanent_user_username', cleanHandle);
       localStorage.setItem('music_mimi_tg_name', cleanName);
       localStorage.setItem('music_mimi_tg_username', cleanHandle);
+      if (stats.avatarUrl) {
+        localStorage.setItem('mimi_permanent_avatar_url', stats.avatarUrl);
+      }
     }
+
+    // Persist permanently in Firestore so future applet updates NEVER revert name to default
+    updateUserProfileData(stats.userId, {
+      name: cleanName,
+      telegramUsername: cleanHandle,
+      avatarUrl: stats.avatarUrl,
+    }).catch(console.error);
 
     onUpdateStats({
       ...stats,
@@ -237,9 +253,33 @@ export const FrensView: React.FC<Props> = ({
         <div className="flex items-center justify-between gap-3 relative z-10">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2.5 mb-1.5">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-cyan-400 via-sky-300 to-amber-300 p-0.5 shadow-md flex-shrink-0">
-                <div className="w-full h-full rounded-full bg-[#05173e] flex items-center justify-center text-white font-black text-base">
-                  {stats.name ? stats.name.slice(0, 2).toUpperCase() : 'MM'}
+              {/* Avatar Logo with Camera badge & Click-to-edit */}
+              <div 
+                onClick={() => {
+                  playTapSound();
+                  setIsAvatarModalOpen(true);
+                }}
+                className="relative group cursor-pointer flex-shrink-0"
+                title={language === 'hi' ? 'लोगो या फोटो बदलें' : 'Change Avatar / Logo'}
+              >
+                <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-cyan-400 via-sky-300 to-amber-300 p-0.5 shadow-md group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(0,210,255,0.7)] transition-all">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-[#05173e] flex items-center justify-center text-white font-black text-base">
+                    {stats.avatarUrl ? (
+                      <img 
+                        src={stats.avatarUrl} 
+                        alt={stats.name} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = ASSETS.minerCharacter;
+                        }}
+                      />
+                    ) : (
+                      <span>{stats.name ? stats.name.slice(0, 2).toUpperCase() : 'MM'}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 shadow border border-white group-hover:scale-110 transition-all">
+                  <Camera className="w-2.5 h-2.5 text-slate-950" />
                 </div>
               </div>
 
@@ -285,16 +325,35 @@ export const FrensView: React.FC<Props> = ({
                   </div>
                 ) : (
                   <div>
-                    <div className="flex items-center gap-1.5 cursor-pointer group" onClick={() => setIsEditingName(true)}>
+                    <div 
+                      className="flex items-center gap-1.5 cursor-pointer group" 
+                      onClick={() => {
+                        playTapSound();
+                        setIsAvatarModalOpen(true);
+                      }}
+                    >
                       <h2 className="text-lg font-black text-white tracking-tight truncate drop-shadow-sm group-hover:text-cyan-200">
                         {stats.name || (language === 'hi' ? 'नया कलाकार' : 'New Producer')}
                       </h2>
-                      <Edit2 className="w-3.5 h-3.5 text-cyan-200 hover:text-white" />
+                      <div className="p-1 rounded-full bg-cyan-400/20 group-hover:bg-cyan-400 text-cyan-200 group-hover:text-slate-950 transition-all">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-cyan-200 font-mono mt-0.5">
                       <TelegramIcon className="w-3.5 h-3.5 text-[#24A1DE] flex-shrink-0" />
                       <span className="font-semibold">{stats.telegramUsername || '@mimi_user'}</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playTapSound();
+                        setIsAvatarModalOpen(true);
+                      }}
+                      className="mt-1 flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-400/20 hover:bg-cyan-400/30 text-cyan-200 text-[9.5px] font-bold border border-cyan-300/30 cursor-pointer active:scale-95 transition-all"
+                    >
+                      <Camera className="w-2.5 h-2.5 text-cyan-300" />
+                      <span>{language === 'hi' ? 'लोगो व प्रोफाइल बदलें' : 'Edit Logo & Profile'}</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -862,6 +921,25 @@ export const FrensView: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* 4. Profile & Logo Customization Modal */}
+      <ProfileAvatarModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+        userId={stats.userId}
+        currentName={stats.name}
+        currentUsername={stats.telegramUsername || '@mimi_user'}
+        currentAvatarUrl={stats.avatarUrl}
+        language={language}
+        onSave={(updated) => {
+          onUpdateStats({
+            ...stats,
+            name: updated.name,
+            telegramUsername: updated.username,
+            avatarUrl: updated.avatarUrl,
+          });
+        }}
+      />
     </div>
   );
 };

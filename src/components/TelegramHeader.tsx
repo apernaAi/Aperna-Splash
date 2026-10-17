@@ -22,6 +22,9 @@ interface Props {
   onOpenNftPage?: () => void;
   onOpenSecurityModal?: () => void;
   onOpenRankPage?: () => void;
+  onOpenProfile?: () => void;
+  userAvatarUrl?: string;
+  userName?: string;
   activeTab?: TabType;
   onBack?: () => void;
 }
@@ -37,6 +40,9 @@ export const TelegramHeader: React.FC<Props> = ({
   onOpenNftPage,
   onOpenSecurityModal,
   onOpenRankPage,
+  onOpenProfile,
+  userAvatarUrl,
+  userName,
   activeTab = 'beats',
   onBack,
 }) => {
@@ -140,8 +146,30 @@ export const TelegramHeader: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Right Controls: Z+ Shield, Language Switch, Sound, Menu */}
+      {/* Right Controls: User Avatar, Z+ Shield, Language Switch, Sound, Menu */}
       <div className="flex items-center gap-1.5 relative">
+        {/* User Avatar Logo Quick Access to Profile */}
+        {onOpenProfile && (
+          <button
+            onClick={() => {
+              playTapSound();
+              onOpenProfile();
+            }}
+            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full p-0.5 bg-gradient-to-tr from-cyan-400 via-sky-300 to-amber-300 shadow-[0_0_8px_rgba(0,210,255,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+            title={userName ? `${userName} (Profile & Logo)` : 'Profile & Logo'}
+          >
+            <div className="w-full h-full rounded-full overflow-hidden bg-[#05173e] flex items-center justify-center">
+              {userAvatarUrl ? (
+                <img src={userAvatarUrl} alt={userName || 'User'} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[9px] font-black text-white">
+                  {userName ? userName.slice(0, 2).toUpperCase() : 'MM'}
+                </span>
+              )}
+            </div>
+          </button>
+        )}
+
         {/* Z+ Security Shield status button */}
         <button
           onClick={() => {

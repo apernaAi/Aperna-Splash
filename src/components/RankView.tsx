@@ -98,6 +98,7 @@ export const RankView: React.FC<Props> = ({
     score: currentScore,
     roleTitle: stats.roleTitle || `सोनिक पायनियर ${stats.level}`,
     lastActive: new Date().toISOString(),
+    avatarUrl: stats.avatarUrl,
   });
 
   const mergedList = Array.from(allUsersMap.values());
@@ -259,6 +260,17 @@ export const RankView: React.FC<Props> = ({
                 </div>
                 {userRank === 1 && (
                   <span className="absolute -top-2 -right-2 text-base">👑</span>
+                )}
+              </div>
+            </div>
+
+            {/* Avatar Logo Thumbnail */}
+            <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-cyan-400 via-sky-300 to-blue-500 flex-shrink-0 shadow-md">
+              <div className="w-full h-full rounded-full overflow-hidden bg-[#05173e] flex items-center justify-center">
+                {stats.avatarUrl ? (
+                  <img src={stats.avatarUrl} alt={stats.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-black text-white">{stats.name ? stats.name.slice(0, 2).toUpperCase() : 'MM'}</span>
                 )}
               </div>
             </div>
@@ -538,8 +550,25 @@ export const RankView: React.FC<Props> = ({
               }`}
             >
               {/* Left: Rank Badge & User Avatar */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 {getRankBadge(rankNum)}
+
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-[#05173e] border border-cyan-400/40 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  {user.avatarUrl ? (
+                    <img 
+                      src={user.avatarUrl} 
+                      alt={user.name} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-[11px] font-black text-white">
+                      {user.name ? user.name.slice(0, 2).toUpperCase() : 'MM'}
+                    </span>
+                  )}
+                </div>
 
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">

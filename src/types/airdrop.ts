@@ -14,6 +14,7 @@ export interface RankedUser {
   score: number;
   roleTitle: string;
   lastActive: string;
+  avatarUrl?: string;
 }
 
 export function calculateRankScore(stats: {
@@ -51,6 +52,7 @@ export interface UserStats {
   userId: string;
   name: string;
   telegramUsername: string;
+  avatarUrl?: string;
   protocolId: string;
   level: number; // Level 1 to 10
   highestLevel: number;

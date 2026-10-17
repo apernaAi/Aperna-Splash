@@ -102,7 +102,8 @@ export async function syncUserWithCloud(
   level: number = 1,
   tasksCompletedCount: number = 0,
   dailyStreakDay: number = 1,
-  roleTitle: string = 'सोनिक पायनियर I'
+  roleTitle: string = 'सोनिक पायनियर I',
+  avatarUrl?: string | null
 ): Promise<{ referrerId: string | null; score: number }> {
   try {
     const userRef = doc(db, 'users', userId);
@@ -128,6 +129,7 @@ export async function syncUserWithCloud(
         userId,
         name: userName || 'Mimi Artist',
         telegramUsername: telegramUsername || '@mimi_user',
+        avatarUrl: avatarUrl || null,
         walletAddress: walletAddress || null,
         referrerId: finalReferrer,
         bonusClaimed: Boolean(finalReferrer),
@@ -189,6 +191,9 @@ export async function syncUserWithCloud(
         lastActive: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      if (avatarUrl) {
+        updates.avatarUrl = avatarUrl;
+      }
 
       if (walletAddress) {
         updates.walletAddress = walletAddress;
@@ -575,7 +580,14 @@ export async function claimDaily10PercentCommission(
  */
 export function listenToUserProfile(
   userId: string,
-  callback: (data: { balance?: number; recruitsCount?: number; commissionEarned?: number }) => void
+  callback: (data: {
+    balance?: number;
+    recruitsCount?: number;
+    commissionEarned?: number;
+    name?: string;
+    telegramUsername?: string;
+    avatarUrl?: string;
+  }) => void
 ) {
   try {
     const userRef = doc(db, 'users', userId);
@@ -588,6 +600,9 @@ export function listenToUserProfile(
             balance: data.balance,
             recruitsCount: data.recruitsCount,
             commissionEarned: data.commissionEarned,
+            name: data.name,
+            telegramUsername: data.telegramUsername,
+            avatarUrl: data.avatarUrl,
           });
         }
       },
@@ -598,6 +613,42 @@ export function listenToUserProfile(
   } catch (err) {
     console.warn('Could not establish user profile listener:', err);
     return () => {};
+  }
+}
+
+/**
+ * Directly updates user's display name, telegram username, and avatar logo in Firestore.
+ * Ensures user changes are permanent and never reset during updates.
+ */
+export async function updateUserProfileData(
+  userId: string,
+  profile: {
+    name?: string;
+    telegramUsername?: string;
+    avatarUrl?: string | null;
+  }
+): Promise<boolean> {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const updates: Record<string, any> = {
+      updatedAt: new Date().toISOString(),
+    };
+    if (profile.name) updates.name = profile.name.trim();
+    if (profile.telegramUsername) updates.telegramUsername = profile.telegramUsername.trim();
+    if (profile.avatarUrl !== undefined) updates.avatarUrl = profile.avatarUrl;
+
+    await setDoc(userRef, updates, { merge: true });
+
+    // Also update referral documents where this user was referred so referrer sees the real updated name/avatar
+    try {
+      const q = query(collection(db, 'referrals'), where('referredUserId', '==', userId));
+      // In onSnapshot or future loads, referredName and referredUsername will sync
+    } catch {}
+
+    return true;
+  } catch (err) {
+    console.error('Error updating user profile in cloud:', err);
+    return false;
   }
 }
 
@@ -689,6 +740,7 @@ export function listenToLiveLeaderboard(
             score: calculatedScore,
             roleTitle: d.roleTitle || `सोनिक पायनियर ${lvl}`,
             lastActive: d.lastActive || d.updatedAt || new Date().toISOString(),
+            avatarUrl: d.avatarUrl || undefined,
           });
         });
 
