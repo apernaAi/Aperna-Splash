@@ -45,7 +45,7 @@ export const MimiMakingDashboard: React.FC<Props> = ({
   // Calculate 8-hour loop making timer status
   const turntableLevel = stats.studioUpgrades?.turntableLevel || 1;
   const amplifierLevel = stats.studioUpgrades?.amplifierLevel || 1;
-  const craftReductionSec = Math.max(0, (turntableLevel - 1) * 1800); // -30m per turntable level
+  const craftReductionSec = Math.max(0, turntableLevel * 120); // -2 minutes (120s) per turntable level
   const baseDurationSec = stats.loopDurationSec || 28800;
   const effectiveDurationSec = Math.max(7200, baseDurationSec - craftReductionSec);
   const LOOP_DURATION_MS = effectiveDurationSec * 1000;

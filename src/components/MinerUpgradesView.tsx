@@ -38,13 +38,13 @@ export const MinerUpgradesView: React.FC<Props> = ({
       id: 'turntable',
       nameHi: 'गोल्डन विनाइल सुई (Gold Stylus)',
       nameEn: 'Gold Stylus Needle',
-      descHi: '8-घंटे के लूप निर्माण का समय घटाता है (तेज़ लूप जनरेशन)',
-      descEn: 'Speeds up 8-hour loop craft (-30 mins per level)',
+      descHi: '8-घंटे के लूप निर्माण का समय घटाता है (प्रति लेवल -2 मिनट तेज़ लूप जनरेशन)',
+      descEn: 'Speeds up 8-hour loop craft (-2 mins per level)',
       level: ttLevel,
       cost: 25 * ttLevel,
       iconEmoji: '🎛️',
-      statBonusHi: `Lvl ${ttLevel} → -${ttLevel * 30}m समय कटौती`,
-      statBonusEn: `Lvl ${ttLevel} → -${ttLevel * 30}m Craft Time`,
+      statBonusHi: `Lvl ${ttLevel} → -${ttLevel * 2}m समय कटौती`,
+      statBonusEn: `Lvl ${ttLevel} → -${ttLevel * 2}m Craft Time`,
     },
     {
       id: 'amplifier',
@@ -151,7 +151,7 @@ export const MinerUpgradesView: React.FC<Props> = ({
             {language === 'hi' ? 'लूप स्पीड' : 'Craft Speed'}
           </span>
           <span className="text-sm font-black text-white mt-0.5">
-            -{ttLevel * 30}m
+            -{ttLevel * 2}m
           </span>
           <span className="text-[9px] text-cyan-400">Turntable Lvl {ttLevel}</span>
         </div>

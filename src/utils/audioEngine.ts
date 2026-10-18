@@ -4,7 +4,21 @@
 import { MUSIC_TRACKS_DATABASE } from '../types/airdrop.ts';
 
 let audioContext: AudioContext | null = null;
-let isAudioMuted: boolean = false;
+
+function getSavedMutePreference(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const userTurnedOff = localStorage.getItem('mimi_music_user_turned_off');
+    if (userTurnedOff !== null) return userTurnedOff === 'true';
+    const muted = localStorage.getItem('mimi_music_muted');
+    if (muted !== null) return muted === 'true';
+    const bgmEnabled = localStorage.getItem('mimi_bgm_enabled');
+    if (bgmEnabled !== null) return bgmEnabled === 'false';
+  } catch {}
+  return false; // Default: sound & music are ON!
+}
+
+let isAudioMuted: boolean = getSavedMutePreference();
 
 // Background Music State
 let bgmAudio: HTMLAudioElement | null = null;
@@ -51,7 +65,15 @@ export function getBgmState() {
 
 function getTrackAudioUrl(trackId: number): string {
   const track = MUSIC_TRACKS_DATABASE.find((t) => t.id === trackId);
-  return track ? track.audioUrl : `/audio/tracks/track-${Math.min(10, Math.max(1, trackId))}.mp3`;
+  const relativePath = track ? track.audioUrl : `/audio/tracks/track-${Math.min(10, Math.max(1, trackId))}.mp3`;
+  if (typeof window !== 'undefined') {
+    try {
+      return new URL(relativePath, window.location.href).href;
+    } catch {
+      return relativePath;
+    }
+  }
+  return relativePath;
 }
 
 function getAudioContext(): AudioContext | null {
@@ -66,7 +88,7 @@ function getAudioContext(): AudioContext | null {
       }
     }
     if (audioContext && audioContext.state === 'suspended') {
-      audioContext.resume();
+      audioContext.resume().catch(() => {});
     }
     return audioContext;
   } catch {
@@ -74,9 +96,23 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
-// Global Mute Toggle
+// Global Mute Toggle (Persistent in localStorage)
 export function setMuteState(muted: boolean) {
   isAudioMuted = muted;
+  if (typeof window !== 'undefined') {
+    try {
+      if (muted) {
+        localStorage.setItem('mimi_music_user_turned_off', 'true');
+        localStorage.setItem('mimi_music_muted', 'true');
+        localStorage.setItem('mimi_bgm_enabled', 'false');
+      } else {
+        localStorage.removeItem('mimi_music_user_turned_off');
+        localStorage.setItem('mimi_music_muted', 'false');
+        localStorage.setItem('mimi_bgm_enabled', 'true');
+      }
+    } catch {}
+  }
+
   if (muted) {
     if (previewAudio) {
       stopTrackPreview();
@@ -84,12 +120,10 @@ export function setMuteState(muted: boolean) {
     if (bgmAudio) {
       bgmAudio.pause();
     }
+    isBgmPlaying = false;
   } else {
-    // If unmuted and background music was previously enabled, resume playback
-    const savedEnabled = typeof window !== 'undefined' ? localStorage.getItem('mimi_bgm_enabled') : 'true';
-    if (savedEnabled !== 'false') {
-      playBackgroundMusic();
-    }
+    getAudioContext();
+    playBackgroundMusic();
   }
   notifyBgmListeners();
 }
@@ -130,10 +164,66 @@ export function triggerHaptic(type: 'light' | 'medium' | 'heavy' = 'light') {
 // BACKGROUND MUSIC (BGM) ENGINE - Persistent, Looping, Soft Volume
 // -------------------------------------------------------------
 
+function attachAutoplayUnlock() {
+  if (bgmAutoplayAttached || typeof window === 'undefined' || isAudioMuted) return;
+  bgmAutoplayAttached = true;
+
+  const events = ['pointerdown', 'touchstart', 'touchend', 'click', 'keydown'];
+
+  const unlockHandler = () => {
+    if (isAudioMuted) {
+      removeUnlockListeners();
+      return;
+    }
+
+    getAudioContext();
+
+    if (bgmAudio) {
+      bgmAudio.volume = bgmVolume;
+      const p = bgmAudio.play();
+      if (p !== undefined) {
+        p.then(() => {
+          isBgmPlaying = true;
+          notifyBgmListeners();
+          removeUnlockListeners();
+        }).catch(() => {
+          // If still blocked, wait for next user touch
+        });
+      }
+    }
+  };
+
+  const removeUnlockListeners = () => {
+    events.forEach((evt) => {
+      window.removeEventListener(evt, unlockHandler, { capture: true } as EventListenerOptions);
+      document.removeEventListener(evt, unlockHandler, { capture: true } as EventListenerOptions);
+    });
+    bgmAutoplayAttached = false;
+  };
+
+  events.forEach((evt) => {
+    window.addEventListener(evt, unlockHandler, { capture: true, passive: true });
+    document.addEventListener(evt, unlockHandler, { capture: true, passive: true });
+  });
+}
+
+export function resumeAudioOnGesture() {
+  if (isAudioMuted) return;
+  getAudioContext();
+  if (bgmAudio && (bgmAudio.paused || !isBgmPlaying)) {
+    bgmAudio.volume = bgmVolume;
+    bgmAudio.play().then(() => {
+      isBgmPlaying = true;
+      notifyBgmListeners();
+    }).catch(() => {});
+  }
+}
+
 export function initBackgroundMusic() {
   if (typeof window === 'undefined') return;
 
-  // Restore saved track ID, volume, and enabled state
+  // Restore saved track ID, volume, and mute state
+  isAudioMuted = getSavedMutePreference();
   try {
     const savedTrack = localStorage.getItem('mimi_bgm_track_id');
     if (savedTrack) {
@@ -176,15 +266,21 @@ export function initBackgroundMusic() {
     });
   }
 
-  bgmAudio.src = getTrackAudioUrl(currentBgmTrackId);
+  const targetSrc = getTrackAudioUrl(currentBgmTrackId);
+  if (!bgmAudio.src || !bgmAudio.src.endsWith(`track-${currentBgmTrackId}.mp3`)) {
+    bgmAudio.src = targetSrc;
+  }
 
-  const savedEnabled = localStorage.getItem('mimi_bgm_enabled');
-  if (savedEnabled !== 'false' && !isAudioMuted) {
+  if (!isAudioMuted) {
     playBackgroundMusic();
+    attachAutoplayUnlock();
   }
 }
 
 export function playBackgroundMusic() {
+  if (typeof window === 'undefined') return;
+  if (isAudioMuted) return;
+
   if (!bgmAudio) {
     initBackgroundMusic();
   }
@@ -199,29 +295,9 @@ export function playBackgroundMusic() {
         isBgmPlaying = true;
         notifyBgmListeners();
       })
-      .catch((err) => {
+      .catch(() => {
         // Autoplay was blocked by browser policy until user gesture
-        if (!bgmAutoplayAttached && typeof window !== 'undefined') {
-          bgmAutoplayAttached = true;
-          const unlockAutoplay = () => {
-            if (bgmAudio && !isAudioMuted) {
-              const enabled = localStorage.getItem('mimi_bgm_enabled');
-              if (enabled !== 'false') {
-                bgmAudio.play().then(() => {
-                  isBgmPlaying = true;
-                  notifyBgmListeners();
-                }).catch(() => {});
-              }
-            }
-            window.removeEventListener('click', unlockAutoplay);
-            window.removeEventListener('touchstart', unlockAutoplay);
-            window.removeEventListener('pointerdown', unlockAutoplay);
-            bgmAutoplayAttached = false;
-          };
-          window.addEventListener('click', unlockAutoplay, { once: true });
-          window.addEventListener('touchstart', unlockAutoplay, { once: true });
-          window.addEventListener('pointerdown', unlockAutoplay, { once: true });
-        }
+        attachAutoplayUnlock();
       });
   }
 }
@@ -241,19 +317,10 @@ export function toggleBackgroundMusic(forceState?: boolean): boolean {
   const targetState = forceState !== undefined ? forceState : !isBgmPlaying;
 
   if (targetState) {
-    if (isAudioMuted) {
-      setMuteState(false);
-    }
-    try {
-      localStorage.setItem('mimi_bgm_enabled', 'true');
-    } catch {}
-    playBackgroundMusic();
+    setMuteState(false);
     return true;
   } else {
-    try {
-      localStorage.setItem('mimi_bgm_enabled', 'false');
-    } catch {}
-    pauseBackgroundMusic();
+    setMuteState(true);
     return false;
   }
 }
@@ -262,7 +329,6 @@ export function setBackgroundMusicTrack(trackId: number, autoPlay: boolean = tru
   currentBgmTrackId = trackId;
   try {
     localStorage.setItem('mimi_bgm_track_id', String(trackId));
-    localStorage.setItem('mimi_bgm_enabled', 'true');
   } catch {}
 
   if (!bgmAudio) {

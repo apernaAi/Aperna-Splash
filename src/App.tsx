@@ -24,7 +24,7 @@ import { ApernaNftPage } from './components/ApernaNftPage.tsx';
 import { ZPlusSecurityModal } from './components/ZPlusSecurityModal.tsx';
 import { RankView } from './components/RankView.tsx';
 import { useTonAddress } from '@tonconnect/ui-react';
-import { setMuteState, playClaimRewardSound, initBackgroundMusic } from './utils/audioEngine.ts';
+import { setMuteState, playClaimRewardSound, initBackgroundMusic, isMuted as isMutedEngine, subscribeBgmState, resumeAudioOnGesture } from './utils/audioEngine.ts';
 import { saveStatsWithIntegritySignature, verifyLocalStorageIntegrity, validateHumanTapVelocity } from './utils/securityEngine.ts';
 import { getTodayDateString, syncTasksWithDailyReset } from './utils/dailyTaskService.ts';
 import {
@@ -405,7 +405,7 @@ export default function App() {
   // Center Beats tab is our main dashboard as requested!
   const [activeTab, setActiveTab] = useState<TabType>('beats');
   const [language, setLanguage] = useState<Language>('hi');
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => isMutedEngine());
   const [showSplash, setShowSplash] = useState(false);
 
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -469,9 +469,27 @@ export default function App() {
     } catch {}
   }, []);
 
-  // Initialize persistent looping background music when entering airdrop
+  // Initialize persistent looping background music when entering airdrop & attach gesture unlock
   useEffect(() => {
     initBackgroundMusic();
+    const unsub = subscribeBgmState((state) => {
+      setIsMuted(state.isMuted);
+    });
+
+    const handleFirstGesture = () => {
+      resumeAudioOnGesture();
+    };
+
+    window.addEventListener('pointerdown', handleFirstGesture, { passive: true });
+    window.addEventListener('touchstart', handleFirstGesture, { passive: true });
+    window.addEventListener('click', handleFirstGesture, { passive: true });
+
+    return () => {
+      unsub();
+      window.removeEventListener('pointerdown', handleFirstGesture);
+      window.removeEventListener('touchstart', handleFirstGesture);
+      window.removeEventListener('click', handleFirstGesture);
+    };
   }, []);
 
   // Fresh User Stats starting at 0 balance for all users with Z+ Integrity Verification

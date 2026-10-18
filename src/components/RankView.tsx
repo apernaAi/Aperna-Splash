@@ -360,7 +360,7 @@ export const RankView: React.FC<Props> = ({
                 <span className="text-amber-300 font-black">🎉 आप लीडरबोर्ड में नंबर 1 पर हैं!</span>
               ) : (
                 <span>
-                  अगले रैंक (#{userRank - 1}) के लिए सिर्फ{' '}
+                  अगले रैंक (#{userRank ? userRank - 1 : 1}) के लिए सिर्फ{' '}
                   <strong className="text-cyan-300 font-mono font-black">+{pointsToOvertake}</strong> स्कोर चाहिए!
                 </span>
               )}
