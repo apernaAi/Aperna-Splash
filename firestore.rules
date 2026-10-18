@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User accounts (Telegram Mini App identity)
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if request.resource.data.userId == userId;
+      allow update: if true;
+      allow delete: if false;
+    }
+
+    // Referrals mapping & qualification tracking
+    match /referrals/{referralId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // 10% Lifetime Commission audit log
+    match /commissions/{commissionId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // 1,000 Early Reserve Pool & NFT whitelist tracking
+    match /nft_reservations/{reservationId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+  }
+}
