@@ -19,6 +19,7 @@ import {
 import { useTonAddress, useTonWallet } from '@tonconnect/ui-react';
 import { UserStats, Language } from '../types/airdrop.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
+import { TelegramIcon } from './TelegramIcon.tsx';
 import {
   TON_CONFIG,
   getTonscanTxUrl,
@@ -264,6 +265,27 @@ export const AirdropWalletView: React.FC<Props> = ({
                 : (language === 'hi' ? 'कनेक्ट करें' : 'Connect')}
             </button>
           </div>
+
+          {/* Airdrop Distribution & DEX Listing Text + Official Channel Button */}
+          {effectiveAddress && (
+            <div className="mt-3 pt-3 border-t border-cyan-400/20 flex flex-col gap-2 animate-fadeIn">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-950/70 border border-cyan-400/30 text-cyan-100">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+                <span className="text-xs font-mono font-bold tracking-tight">
+                  Airdrop Distribution &amp; DEX Listing: 22 January 2027 (Coming Soon)
+                </span>
+              </div>
+              <a
+                href="https://t.me/ApernaAIOfficial"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0088cc] via-[#0099ee] to-[#00aaff] hover:from-[#0077bb] hover:to-[#0088cc] text-white font-extrabold text-xs shadow-[0_0_15px_rgba(0,153,238,0.4)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <TelegramIcon className="w-4 h-4 fill-white shrink-0" />
+                <span>Join Official Channel for Updates</span>
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
@@ -301,6 +323,25 @@ export const AirdropWalletView: React.FC<Props> = ({
             ? 'आपके द्वारा माइन किए गए सभी $MIMI टोकन सुरक्षित हैं। DEX लिस्टिंग पर आप इन्हें सीधे अपने कनेक्टेड TON वॉलेट में क्लेम कर सकेंगे।'
             : 'All mined $MIMI tokens are verified & safe. Upon official DEX listing, you can claim them directly into your connected TON wallet.'}
         </p>
+
+        {/* AdsGram Compliance Banner: Airdrop Distribution Schedule */}
+        <div className="p-3 rounded-2xl bg-cyan-950/60 border border-cyan-400/30 space-y-2">
+          <div className="flex items-center gap-2 text-cyan-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-xs font-mono font-bold text-white tracking-tight">
+              Airdrop Distribution &amp; DEX Listing: 22 January 2027 (Coming Soon)
+            </span>
+          </div>
+          <a
+            href="https://t.me/ApernaAIOfficial"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2 px-3 rounded-xl bg-[#0088cc] hover:bg-[#0077bb] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+          >
+            <TelegramIcon className="w-3.5 h-3.5 fill-white shrink-0" />
+            <span>Join Official Channel for Updates</span>
+          </a>
+        </div>
       </div>
 
       {/* Insufficient balance notice */}

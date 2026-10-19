@@ -4,6 +4,7 @@ import { useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-rea
 import { Language } from '../types/airdrop.ts';
 import { validateTonAddress, shortenAddress } from '../utils/tonService.ts';
 import { playClaimRewardSound, playTapSound, triggerHaptic } from '../utils/audioEngine.ts';
+import { TelegramIcon } from './TelegramIcon.tsx';
 
 interface Props {
   isOpen: boolean;
@@ -194,6 +195,22 @@ export const ConnectWalletModal: React.FC<Props> = ({
                   <span>{language === 'hi' ? 'नॉन-कस्टोडियल व Z+ सुरक्षा प्रमाणित' : 'Non-Custodial & Verified'}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Airdrop Distribution & DEX Listing Notice for AdsGram */}
+            <div className="p-3 rounded-2xl bg-cyan-950/70 border border-cyan-400/30 text-center space-y-2">
+              <p className="text-xs font-mono font-bold text-cyan-100">
+                Airdrop Distribution &amp; DEX Listing: 22 January 2027 (Coming Soon)
+              </p>
+              <a
+                href="https://t.me/ApernaAIOfficial"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0088cc] to-[#00aaff] hover:from-[#0077bb] hover:to-[#0088cc] text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <TelegramIcon className="w-3.5 h-3.5 fill-white shrink-0" />
+                <span>Join Official Channel for Updates</span>
+              </a>
             </div>
 
             {/* Action Buttons */}
