@@ -50,9 +50,9 @@ export const TelegramBotSyncModal: React.FC<Props> = ({
       return '';
     }
   });
-  const [channelUsername, setChannelUsername] = useState<string>('@ApernaAIOfficial');
+  const [channelUsername, setChannelUsername] = useState<string>('@musicmimi_community');
   const [broadcastNotes, setBroadcastNotes] = useState<string>(
-    '• 🎬 New YouTube Bounty Tasks: Watch, Like, Comment & Subscribe for instant $MIMI!\n• 📸 Follow @ApernaAIOfficial & @Hashmi_Crypto on Telegram & Instagram\n• 🎁 Free 1,000 $APERNA Tokens on Genesis NFT Portal Mint'
+    '• 🎬 New YouTube Bounty Tasks: Watch, Like, Comment & Subscribe for instant $MIMI!\n• 📸 Follow @musicmimi_community & @Hashmi_Crypto on Telegram & Instagram\n• 🎁 Free 1,000 $APERNA Tokens on Genesis NFT Portal Mint'
   );
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -88,7 +88,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({
     setIsLoading(false);
   };
 
-  // Broadcast to @ApernaAIOfficial channel
+  // Broadcast to @musicmimi_community channel
   const handleSendBroadcast = async () => {
     playTapSound();
     setIsLoading(true);
@@ -271,7 +271,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* TAB 1: BROADCAST TO @ApernaAIOfficial */}
+        {/* TAB 1: BROADCAST TO @musicmimi_community */}
         {activeTab === 'broadcast' && (
           <div className="flex flex-col gap-3">
             {/* Context Box */}
@@ -312,7 +312,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({
                 type="text"
                 value={channelUsername}
                 onChange={(e) => setChannelUsername(e.target.value)}
-                placeholder="@ApernaAIOfficial"
+                placeholder="@musicmimi_community"
                 className="w-full rounded-xl bg-black/50 border border-cyan-400/40 px-3 py-2 text-xs font-mono text-cyan-100 placeholder-slate-500 focus:outline-none focus:border-cyan-300 font-bold"
               />
             </div>
@@ -372,13 +372,13 @@ export const TelegramBotSyncModal: React.FC<Props> = ({
                   <p className="font-semibold text-white mt-1">🎬 Active Bounty Tasks:</p>
                   <p className="text-slate-300 text-[10px]">• Watch, Like &amp; Comment on YouTube Videos (+15 $MIMI)</p>
                   <p className="text-slate-300 text-[10px]">• Subscribe @hashmicrypto1 YouTube Channel</p>
-                  <p className="text-slate-300 text-[10px]">• Join @Hashmi_Crypto &amp; @ApernaAIOfficial</p>
+                  <p className="text-slate-300 text-[10px]">• Join @Hashmi_Crypto &amp; @musicmimi_community</p>
                   <p className="text-slate-300 text-[10px]">• Free 1,000 $APERNA Tokens Genesis Bonus</p>
                   <div className="mt-2 pt-2 border-t border-cyan-500/20 grid grid-cols-2 gap-1 text-center">
                     <div className="py-1 bg-cyan-600/40 rounded text-[9px] text-cyan-200 font-bold">🚀 Launch App</div>
                     <div className="py-1 bg-cyan-600/40 rounded text-[9px] text-cyan-200 font-bold">👑 Genesis NFT</div>
                     <div className="py-1 bg-cyan-600/40 rounded text-[9px] text-cyan-200 font-bold">▶️ YouTube Bounty</div>
-                    <div className="py-1 bg-cyan-600/40 rounded text-[9px] text-cyan-200 font-bold">👥 @ApernaAIOfficial</div>
+                    <div className="py-1 bg-cyan-600/40 rounded text-[9px] text-cyan-200 font-bold">👥 @musicmimi_community</div>
                   </div>
                 </div>
               </div>
@@ -577,7 +577,7 @@ export const TelegramBotSyncModal: React.FC<Props> = ({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-amber-300 hover:text-white font-bold underline transition-colors"
           >
-            <span>{language === 'hi' ? '📢 चैनल @ApernaAIOfficial खोलें' : '📢 Open @ApernaAIOfficial'}</span>
+            <span>{language === 'hi' ? `📢 चैनल ${channelUsername} खोलें` : `📢 Open ${channelUsername}`}</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
           <button

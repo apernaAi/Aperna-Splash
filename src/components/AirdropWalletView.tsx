@@ -276,7 +276,7 @@ export const AirdropWalletView: React.FC<Props> = ({
                 </span>
               </div>
               <a
-                href="https://t.me/ApernaAIOfficial"
+                href="https://t.me/musicmimi_community"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0088cc] via-[#0099ee] to-[#00aaff] hover:from-[#0077bb] hover:to-[#0088cc] text-white font-extrabold text-xs shadow-[0_0_15px_rgba(0,153,238,0.4)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -333,7 +333,7 @@ export const AirdropWalletView: React.FC<Props> = ({
             </span>
           </div>
           <a
-            href="https://t.me/ApernaAIOfficial"
+            href="https://t.me/musicmimi_community"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full py-2 px-3 rounded-xl bg-[#0088cc] hover:bg-[#0077bb] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"

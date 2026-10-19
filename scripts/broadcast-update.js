@@ -15,7 +15,7 @@ if (!BOT_TOKEN) {
   console.error('Usage: TELEGRAM_BOT_TOKEN="your_bot_token" node scripts/broadcast-update.js');
   process.exit(1);
 }
-const CHANNEL = process.env.CHANNEL || process.env.TELEGRAM_CHANNEL || '@ApernaAIOfficial';
+const CHANNEL = process.env.CHANNEL || process.env.TELEGRAM_CHANNEL || '@musicmimi_community';
 const APP_URL = (process.env.APP_URL || 'https://my-project-six-coral-29.vercel.app').replace(/\/+$/, '');
 const NOTES = process.env.NOTES || '';
 
@@ -34,7 +34,7 @@ Aperna AI Community ke sabhi members ke liye ek fresh high-speed update live kar
 🎬 <b>1. NEW YOUTUBE &amp; SOCIAL BOUNTY TASKS</b>
 • <b>Watch, Like &amp; Comment:</b> YouTube videos dekhne aur engage karne par instant $MIMI rewards!
 • <b>Channel Subscribe:</b> Official @hashmicrypto1 channel subscribe karein aur bell icon on karein.
-• <b>Telegram &amp; Instagram:</b> @ApernaAIOfficial &amp; @Hashmi_Crypto follow bounty tasks active.
+• <b>Telegram &amp; Instagram:</b> @musicmimi_community &amp; @Hashmi_Crypto follow bounty tasks active.
 
 👑 <b>2. APERNA AI GENESIS MEMORIAL SAGA (NFT PORTAL)</b>
 • <b>Live on Polygon PoS Mainnet:</b> Sovereign ERC-721 + EIP-2981 Web3 collection.
@@ -77,8 +77,8 @@ ${NOTES ? `📌 <b>Important Announcement:</b>\n${NOTES}\n\n` : ''}━━━━�
           url: 'https://youtube.com/@hashmicrypto1?si=p8615mTtahK5bA_o',
         },
         {
-          text: '👥 Join @ApernaAIOfficial',
-          url: 'https://t.me/ApernaAIOfficial',
+          text: '👥 Join @musicmimi_community',
+          url: 'https://t.me/musicmimi_community',
         },
       ],
     ],

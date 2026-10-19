@@ -7,7 +7,7 @@
  */
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const DEFAULT_CHANNEL = process.env.TELEGRAM_CHANNEL || '@ApernaAIOfficial';
+const DEFAULT_CHANNEL = process.env.TELEGRAM_CHANNEL || '@musicmimi_community';
 const DEFAULT_APP_URL = process.env.APP_URL || 'https://my-project-six-coral-29.vercel.app';
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
@@ -69,8 +69,8 @@ export function buildBroadcastKeyboard(appUrl = DEFAULT_APP_URL) {
           url: 'https://youtube.com/@hashmicrypto1?si=p8615mTtahK5bA_o',
         },
         {
-          text: '👥 Join @ApernaAIOfficial',
-          url: 'https://t.me/ApernaAIOfficial',
+          text: '👥 Join @musicmimi_community',
+          url: 'https://t.me/musicmimi_community',
         },
       ],
     ],
@@ -173,7 +173,7 @@ export default async function handler(req: any, res: any) {
             <input type="hidden" name="token" value="${req.query?.token || req.body?.token || ''}" />
             
             <label>🎯 Target Channel (Username or Chat ID):</label>
-            <input type="text" name="channel" value="${queryChannel}" placeholder="@ApernaAIOfficial or -100..." required />
+            <input type="text" name="channel" value="${queryChannel}" placeholder="@musicmimi_community or -100..." required />
 
             <label>📝 Optional Custom Announcement Notes:</label>
             <textarea name="notes" placeholder="e.g. • Naye YouTube Task &amp; Instagram Task add ho gaye!&#10;• Video like/comment/subscribe par Free $MIMI claim karein&#10;• Instant 1,000 $APERNA airdrop reward"></textarea>
@@ -185,8 +185,8 @@ export default async function handler(req: any, res: any) {
 
           <div class="tip-box">
             💡 <strong>Channel Requirements:</strong><br/>
-            1. Ensure your Bot is added as an <b>Admin</b> in <b>@ApernaAIOfficial</b> with <b>Post Messages</b> permission.<br/>
-            2. For public channel: use <code>@ApernaAIOfficial</code>.<br/>
+            1. Ensure your Bot is added as an <b>Admin</b> in <b>@musicmimi_community</b> with <b>Post Messages</b> permission.<br/>
+            2. For public channel: use <code>@musicmimi_community</code>.<br/>
             3. For private channel: use its numerical chat_id (starts with <code>-100...</code>).
           </div>
 

@@ -203,7 +203,7 @@ export const ConnectWalletModal: React.FC<Props> = ({
                 Airdrop Distribution &amp; DEX Listing: 22 January 2027 (Coming Soon)
               </p>
               <a
-                href="https://t.me/ApernaAIOfficial"
+                href="https://t.me/musicmimi_community"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0088cc] to-[#00aaff] hover:from-[#0077bb] hover:to-[#0088cc] text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"

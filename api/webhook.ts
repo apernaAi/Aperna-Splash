@@ -182,7 +182,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const cleanAppUrl = appUrl.replace(/\/+$/, '');
-    const targetChannel = process.env.TELEGRAM_CHANNEL || '@ApernaAIOfficial';
+    const targetChannel = process.env.TELEGRAM_CHANNEL || '@musicmimi_community';
 
     // Broadcast command for admin: /broadcast <notes> or /announce <notes>
     if (text.startsWith('/broadcast') || text.startsWith('/announce') || text.startsWith('/post')) {
@@ -196,7 +196,7 @@ ${customNotes || 'A fresh high-speed update has been pushed with new YouTube Vid
 🎬 <b>Active Bounty Tasks:</b>
 • Watch, Like &amp; Comment on YouTube Videos
 • Subscribe @hashmicrypto1 on YouTube
-• Follow @ApernaAIOfficial &amp; @Hashmi_Crypto on Telegram &amp; Instagram
+• Follow @musicmimi_community &amp; @Hashmi_Crypto on Telegram &amp; Instagram
 • Claim +1,000 $APERNA NFT Genesis Bonus
 
 ━━━━━━━━━━━━━━━━━━━━━
@@ -214,7 +214,7 @@ ${customNotes || 'A fresh high-speed update has been pushed with new YouTube Vid
             ],
             [
               { text: '▶️ Hashmi Crypto YouTube', url: 'https://youtube.com/@hashmicrypto1?si=p8615mTtahK5bA_o' },
-              { text: '👥 Join @ApernaAIOfficial', url: 'https://t.me/ApernaAIOfficial' },
+              { text: '👥 Join @musicmimi_community', url: 'https://t.me/musicmimi_community' },
             ],
           ],
         },
