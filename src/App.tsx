@@ -232,173 +232,7 @@ function createInitialStats(): UserStats {
   };
 }
 
-const DEFAULT_TASKS: AirdropTask[] = [
-  {
-    id: "tg-hashmi-crypto",
-    category: "social",
-    subType: "telegram",
-    title: "Telegram @Hashmi_Crypto जॉइन करें (+15 $MIMI)",
-    titleEn: "Join Telegram @Hashmi_Crypto (+15 $MIMI)",
-    description: "Hashmi Crypto Telegram चैनल जॉइन करें। बिना फॉलो किए टोकन क्लेम नहीं होगा।",
-    descriptionEn: "Join Hashmi Crypto Telegram channel. Genuine follow/join required to claim tokens.",
-    reward: 15,
-    iconType: "telegram",
-    actionUrl: "https://t.me/Hashmi_Crypto",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "yt-subscribe-hashmi",
-    category: "youtube",
-    subType: "subscribe",
-    title: "YouTube चैनल सब्सक्राइब करें (+20 $MIMI)",
-    titleEn: "Subscribe to Hashmi Crypto YouTube (+20 $MIMI)",
-    description: "@hashmicrypto1 चैनल को सब्सक्राइब करें, घंटी आइकन ऑन करें और 20 $MIMI प्राप्त करें।",
-    descriptionEn: "Subscribe to @hashmicrypto1 channel, turn on bell icon and claim 20 $MIMI.",
-    reward: 20,
-    iconType: "youtube",
-    actionUrl: "https://youtube.com/@hashmicrypto1?si=p8615mTtahK5bA_o",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "yt-video-1",
-    category: "youtube",
-    subType: "video",
-    title: "YouTube वीडियो #1 देखें, Like & Comment (+15 $MIMI)",
-    titleEn: "Watch, Like & Comment YouTube Video #1 (+15 $MIMI)",
-    description: "वीडियो पूरा देखें, Like बटन दबाएं और कमेंट बॉक्स में अपनी राय लिखें!",
-    descriptionEn: "Watch full video, hit Like and leave a comment to claim 15 $MIMI!",
-    reward: 15,
-    iconType: "youtube",
-    actionUrl: "https://youtu.be/W3LP_nQUfU4?si=x5nz87wIQWL0g2UK",
-    requiredWaitSeconds: 20,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "yt-video-2",
-    category: "youtube",
-    subType: "video",
-    title: "क्रिप्टो वीडियो #2 देखें, Like & Comment (+15 $MIMI)",
-    titleEn: "Watch, Like & Comment Crypto Video #2 (+15 $MIMI)",
-    description: "वीडियो देखें, Like करें और Comment करें ताकि असली व्यू और एंगेजमेंट काउंट हो।",
-    descriptionEn: "Watch video, Like and Comment to register genuine view and earn 15 $MIMI.",
-    reward: 15,
-    iconType: "youtube",
-    actionUrl: "https://youtu.be/LD23gGEig5I?si=g4hAgs1j1TKpZ-gu",
-    requiredWaitSeconds: 20,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "yt-video-3",
-    category: "youtube",
-    subType: "video",
-    title: "लेटेस्ट वीडियो #3 देखें, Like & Comment (+15 $MIMI)",
-    titleEn: "Watch, Like & Comment Latest Video #3 (+15 $MIMI)",
-    description: "वीडियो देखें, Like और अच्छा सा Comment ड्रॉप करें और 15 $MIMI क्लेम करें।",
-    descriptionEn: "Watch video, Like and drop a comment to claim 15 $MIMI reward.",
-    reward: 15,
-    iconType: "youtube",
-    actionUrl: "https://youtu.be/5-nfzycuono?si=orUpcHmMNNLYkDX7",
-    requiredWaitSeconds: 20,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "ig-hashmi-crypto",
-    category: "social",
-    subType: "instagram",
-    title: "Instagram @hashmicrypto फॉलो करें (+12 $MIMI)",
-    titleEn: "Follow @hashmicrypto on Instagram (+12 $MIMI)",
-    description: "Instagram पर @hashmicrypto को फॉलो करें और 12 $MIMI टोकन प्राप्त करें।",
-    descriptionEn: "Follow @hashmicrypto on Instagram and earn 12 $MIMI tokens.",
-    reward: 12,
-    iconType: "instagram",
-    actionUrl: "https://www.instagram.com/hashmicrypto?igsh=NnV4aXA1YXA3bWRu&utm_source=qr",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "dolicash-task-offer",
-    category: "partner",
-    subType: "partner",
-    title: "Dolicash स्पेशल टास्क (+15 $MIMI)",
-    titleEn: "Dolicash Special Offer (+15 $MIMI)",
-    description: "Dolicash ऑफर पूरा करें और 15 $MIMI टोकन प्राप्त करें।",
-    descriptionEn: "Complete the Dolicash offer via tracking link to earn 15 $MIMI.",
-    reward: 15,
-    iconType: "flame",
-    actionUrl: "https://www.fastrsrvr.com/view.php?id=5547102&pub=3366972",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "telegram-channel-aperna",
-    category: "social",
-    subType: "telegram",
-    title: "Telegram चैनल Aperna AI (+10 $MIMI)",
-    titleEn: "Join Aperna AI Telegram (+10 $MIMI)",
-    description: "Aperna AI के ऑफिशियल Telegram चैनल को जॉइन करें और 10 $MIMI प्राप्त करें।",
-    descriptionEn: "Join the official Aperna AI Telegram channel to claim 10 $MIMI.",
-    reward: 10,
-    iconType: "telegram",
-    actionUrl: "https://t.me/ApernaAIOfficial",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "instagram-follow-aperna",
-    category: "social",
-    subType: "instagram",
-    title: "Instagram Aperna AI फॉलो करें (+10 $MIMI)",
-    titleEn: "Follow Aperna AI on Instagram (+10 $MIMI)",
-    description: "@aperna_ai को Instagram पर फॉलो करें और 10 $MIMI टोकन प्राप्त करें।",
-    descriptionEn: "Follow @aperna_ai on Instagram to earn 10 $MIMI tokens.",
-    reward: 10,
-    iconType: "instagram",
-    actionUrl: "https://www.instagram.com/aperna_ai?stkn=MWdmM3RyanV5eWI3eQ==",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "twitter-follow-aperna",
-    category: "social",
-    subType: "other",
-    title: "X (Twitter) पर फॉलो करें (+10 $MIMI)",
-    titleEn: "Follow on X (Twitter) (+10 $MIMI)",
-    description: "X पर @MohammadSl83128 को फॉलो करें और 10 $MIMI टोकन प्राप्त करें।",
-    descriptionEn: "Follow @MohammadSl83128 on X (Twitter) to claim 10 $MIMI tokens.",
-    reward: 10,
-    iconType: "twitter",
-    actionUrl: "https://x.com/MohammadSl83128",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-  {
-    id: "discord-join-aperna",
-    category: "community",
-    subType: "other",
-    title: "Discord कम्युनिटी जॉइन करें (+10 $MIMI)",
-    titleEn: "Join Discord Community (+10 $MIMI)",
-    description: "Aperna AI Discord सर्वर से जुड़ें और 10 $MIMI टोकन प्राप्त करें।",
-    descriptionEn: "Join the Aperna AI Discord server to claim 10 $MIMI tokens.",
-    reward: 10,
-    iconType: "discord",
-    actionUrl: "https://discord.gg/3hjUXrfVQe",
-    requiredWaitSeconds: 15,
-    verificationType: "external_confirmed",
-    isCompleted: false,
-  },
-];
+const DEFAULT_TASKS: AirdropTask[] = [];
 
 export default function App() {
   const tonAddress = useTonAddress();
@@ -459,12 +293,17 @@ export default function App() {
     }
   }, []);
 
-  // PURGE LEGACY FAKE TASK BALANCES SO USERS START CLEAN AT 0.00 $MIMI
+  // PURGE ALL PREVIOUS TASKS SO TASK SECTION IS COMPLETELY EMPTY AS REQUESTED
   useEffect(() => {
     try {
       localStorage.removeItem('music_mimi_stats_clean_v4');
       localStorage.removeItem('music_mimi_tasks_clean_v4');
       localStorage.removeItem('music_mimi_tasks_clean_v5');
+      localStorage.removeItem('music_mimi_tasks_v9_hashmi_crypto');
+      localStorage.removeItem('music_mimi_tasks_v8_real_social');
+      localStorage.removeItem('music_mimi_tasks_v7_real_lp');
+      localStorage.removeItem('music_mimi_visited_tasks');
+      localStorage.removeItem('music_mimi_task_start_times');
       localStorage.removeItem('music_mimi_refs_clean_v4');
     } catch {}
   }, []);

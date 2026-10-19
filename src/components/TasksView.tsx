@@ -196,91 +196,7 @@ export const TasksView: React.FC<Props> = ({
 
   return (
     <div className="w-full flex flex-col gap-4 pb-28 pt-2 px-4 select-none">
-      {/* 1. DOLICASH PARTNER TASK CARD */}
-      <div className="relative w-full rounded-3xl p-5 overflow-hidden bg-gradient-to-br from-[#1e1b4b] via-[#0f172a] to-[#020617] border-2 border-amber-400/60 shadow-[0_12px_45px_rgba(245,158,11,0.3)] text-white space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
-              <Flame className="w-5 h-5 text-amber-400 fill-amber-400/30" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
-                  {language === 'hi' ? 'Dolicash स्पेशल टास्क' : 'Dolicash Task Offer'}
-                </h2>
-                <span className="text-[9px] font-mono font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
-                  +15 $MIMI
-                </span>
-              </div>
-              <p className="text-[11px] text-cyan-200/80 font-mono">
-                {language === 'hi'
-                  ? 'Dolicash स्पॉन्सर ऑफर पूरा करें और 15 $MIMI टोकन प्राप्त करें'
-                  : 'Complete Dolicash sponsor offer to earn 15 $MIMI tokens'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Primary Action Button */}
-        {(() => {
-          const dolicashTask = tasks.find((t) => t.id === 'dolicash-task-offer');
-          const isDone = dolicashTask ? dolicashTask.isCompleted : false;
-          const isStarted = dolicashTask ? Boolean(visitedTaskIds[dolicashTask.id]) : false;
-
-          if (isDone) {
-            return (
-              <div className="w-full py-2.5 px-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-1 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400" />
-                  <span>{language === 'hi' ? 'Dolicash आज पूरा हुआ (+15 $MIMI प्राप्त)' : 'Dolicash Completed Today (+15 $MIMI)'}</span>
-                </div>
-                <span className="text-[10px] text-cyan-200/80 font-mono">
-                  {language === 'hi' ? 'कल फिर से +15 $MIMI क्लेम करने के लिए खुलेगा 🔁' : 'Available again tomorrow to claim +15 $MIMI 🔁'}
-                </span>
-              </div>
-            );
-          }
-
-          if (isStarted) {
-            return (
-              <button
-                onClick={() => {
-                  if (dolicashTask) handleTaskClick(dolicashTask);
-                }}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 hover:from-emerald-300 hover:to-teal-200 text-slate-950 font-black text-xs sm:text-sm tracking-wide shadow-[0_0_25px_rgba(52,211,153,0.7)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer animate-pulse"
-              >
-                <Check className="w-4 h-4 text-slate-950" />
-                <span>
-                  {language === 'hi' ? 'टास्क पूरा किया? टोकन सत्यापित करें (+15 $MIMI)' : 'Completed Offer? Verify Tokens (+15 $MIMI)'}
-                </span>
-                <ArrowUpRight className="w-4 h-4 text-slate-950" />
-              </button>
-            );
-          }
-
-          return (
-            <button
-              onClick={() => {
-                if (dolicashTask) {
-                  handleTaskClick(dolicashTask);
-                } else {
-                  playTapSound();
-                  openLinkSafely('https://www.fastrsrvr.com/view.php?id=5547102&pub=3366972');
-                }
-              }}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm tracking-wide shadow-[0_0_25px_rgba(245,158,11,0.6)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4 text-slate-950" />
-              <span>
-                {language === 'hi' ? 'Dolicash टास्क शुरू करें (+15 $MIMI)' : 'Start Dolicash Task (+15 $MIMI)'}
-              </span>
-              <ArrowUpRight className="w-4 h-4 text-slate-950" />
-            </button>
-          );
-        })()}
-      </div>
-
-      {/* 2. Mimi Beat Rush Arcade Banner */}
+      {/* 1. Mimi Beat Rush Arcade Banner */}
       <button
         onClick={() => {
           playTapSound();
@@ -309,7 +225,7 @@ export const TasksView: React.FC<Props> = ({
         </div>
       </button>
 
-      {/* 3. Daily Check-in Card (रोज़ाना चेक-इन) */}
+      {/* 2. Daily Check-in Card (रोज़ाना चेक-इन) */}
       <div className="w-full rounded-3xl glass-panel-blue p-4 shadow-[0_8px_30px_rgba(0,10,30,0.7)]">
         <div className="flex items-center justify-between mb-3 px-1">
           <h3 className="text-base font-extrabold text-white">
@@ -393,64 +309,86 @@ export const TasksView: React.FC<Props> = ({
         )}
       </div>
 
-      {/* 4. Daily Reset Countdown Banner */}
-      <div className="w-full p-3 rounded-2xl bg-gradient-to-r from-[#0d2a5e] via-[#091f48] to-[#071838] border border-cyan-400/40 shadow-sm flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 font-bold text-sm">
-            🔁
+      {/* 3. Tasks Container */}
+      {tasks.length === 0 ? (
+        <div className="w-full rounded-3xl glass-panel-blue p-6 text-center border border-cyan-500/30 flex flex-col items-center justify-center gap-3">
+          <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-2xl shadow-inner">
+            ✨
           </div>
           <div>
-            <span className="text-xs font-black text-white block">
-              {language === 'hi' ? 'दैनिक रीसेट (रोज़ाना क्लेम करें)' : 'Daily Quests (Claim Every Day)'}
-            </span>
-            <span className="text-[10px] text-cyan-300/80 font-mono">
-              {language === 'hi' ? 'सभी टास्क हर दिन दोबारा क्लेम के लिए खुलते हैं' : 'Tasks reset daily so you can earn every day'}
-            </span>
+            <h3 className="text-base font-black text-white">
+              {language === 'hi' ? 'कोई सक्रिय टास्क नहीं है' : 'No Active Tasks'}
+            </h3>
+            <p className="text-xs text-cyan-200/70 mt-1 max-w-xs mx-auto">
+              {language === 'hi'
+                ? 'टास्क सेक्शन के सभी टास्क हटा दिए गए हैं। नए टास्क जल्द ही उपलब्ध होंगे। तब तक रोज़ाना चेक-इन करें और बीट रश खेलें!'
+                : 'All tasks have been removed. New quests will be added soon! Keep claiming your daily streak & playing Beat Rush.'}
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[11px] font-mono text-cyan-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>{language === 'hi' ? '0 टास्क सक्रिय' : '0 Tasks Active'}</span>
           </div>
         </div>
-        <div className="text-right flex-shrink-0">
-          <span className="text-[9px] font-mono text-cyan-300/80 uppercase tracking-wider block">
-            {language === 'hi' ? 'रीसेट में शेष:' : 'Next Reset:'}
-          </span>
-          <span className="text-xs font-mono font-black text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-400/40 inline-block mt-0.5">
-            ⏳ {timeUntilReset.formatted}
-          </span>
-        </div>
-      </div>
-
-      {/* 5. Filter Segmented Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {[
-          { id: 'all', hi: 'सभी कार्य', en: 'All Tasks', count: tasks.length },
-          { id: 'youtube', hi: '▶️ यूट्यूब वीडियो व चैनल', en: '▶️ YouTube', count: youtubeTasksCount },
-          { id: 'social', hi: '🌐 टेलीग्राम व सोशल', en: '🌐 Telegram & Social', count: socialTasksCount },
-          { id: 'partner', hi: '🔥 Dolicash ऑफर', en: '🔥 Dolicash', count: 1 },
-        ].map((tab) => {
-          const isActive = filter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                playTapSound();
-                setFilter(tab.id as typeof filter);
-              }}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                isActive
-                  ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-slate-950 shadow-[0_0_12px_rgba(0,210,255,0.5)] font-black scale-102'
-                  : 'bg-[#081a3d] text-cyan-200 hover:text-white hover:bg-[#0c2759] border border-cyan-500/20'
-              }`}
-            >
-              <span>{language === 'hi' ? tab.hi : tab.en}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-slate-900/30 text-slate-950' : 'bg-cyan-500/20 text-cyan-300'}`}>
-                {tab.count}
+      ) : (
+        <>
+          {/* Daily Reset Countdown Banner */}
+          <div className="w-full p-3 rounded-2xl bg-gradient-to-r from-[#0d2a5e] via-[#091f48] to-[#071838] border border-cyan-400/40 shadow-sm flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 font-bold text-sm">
+                🔁
+              </div>
+              <div>
+                <span className="text-xs font-black text-white block">
+                  {language === 'hi' ? 'दैनिक रीसेट (रोज़ाना क्लेम करें)' : 'Daily Quests (Claim Every Day)'}
+                </span>
+                <span className="text-[10px] text-cyan-300/80 font-mono">
+                  {language === 'hi' ? 'सभी टास्क हर दिन दोबारा क्लेम के लिए खुलते हैं' : 'Tasks reset daily so you can earn every day'}
+                </span>
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <span className="text-[9px] font-mono text-cyan-300/80 uppercase tracking-wider block">
+                {language === 'hi' ? 'रीसेट में शेष:' : 'Next Reset:'}
               </span>
-            </button>
-          );
-        })}
-      </div>
+              <span className="text-xs font-mono font-black text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-400/40 inline-block mt-0.5">
+                ⏳ {timeUntilReset.formatted}
+              </span>
+            </div>
+          </div>
 
-      {/* 5. Authentic Task List */}
-      <div className="flex flex-col gap-2.5">
+          {/* Filter Segmented Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              { id: 'all', hi: 'सभी कार्य', en: 'All Tasks', count: tasks.length },
+              { id: 'youtube', hi: '▶️ यूट्यूब वीडियो व चैनल', en: '▶️ YouTube', count: youtubeTasksCount },
+              { id: 'social', hi: '🌐 टेलीग्राम व सोशल', en: '🌐 Telegram & Social', count: socialTasksCount },
+            ].map((tab) => {
+              const isActive = filter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    playTapSound();
+                    setFilter(tab.id as typeof filter);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-slate-950 shadow-[0_0_12px_rgba(0,210,255,0.5)] font-black scale-102'
+                      : 'bg-[#081a3d] text-cyan-200 hover:text-white hover:bg-[#0c2759] border border-cyan-500/20'
+                  }`}
+                >
+                  <span>{language === 'hi' ? tab.hi : tab.en}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-slate-900/30 text-slate-950' : 'bg-cyan-500/20 text-cyan-300'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Authentic Task List */}
+          <div className="flex flex-col gap-2.5">
         {filteredTasks.length === 0 ? (
           <div className="w-full py-8 text-center text-xs text-cyan-300/60 bg-[#06183a] rounded-2xl border border-cyan-500/20">
             {language === 'hi' ? 'इस श्रेणी में कोई कार्य नहीं है' : 'No tasks in this category'}
@@ -604,6 +542,8 @@ export const TasksView: React.FC<Props> = ({
           })
         )}
       </div>
+      </>
+      )}
 
       {/* STRICT ANTI-CHEAT TASK COMPLETION VERIFICATION MODAL */}
       {activeTaskPrompt && (
