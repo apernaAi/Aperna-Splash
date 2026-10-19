@@ -742,7 +742,7 @@ export default function App() {
   const pendingTasksCount = tasks.filter((t) => !t.isCompleted).length;
 
   return (
-    <div className="min-h-screen bg-radial from-[#0d2757] via-[#051332] to-[#02091c] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black">
+    <div className="min-h-screen max-w-full overflow-x-hidden bg-radial from-[#0d2757] via-[#051332] to-[#02091c] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black">
       {/* Background ambient shine polish lines */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.25),rgba(255,255,255,0))] pointer-events-none z-0" />
 
@@ -775,7 +775,7 @@ export default function App() {
       />
 
       {/* Main View Container - Clean without large banner pushing content down! */}
-      <main className="flex-1 w-full max-w-md mx-auto flex flex-col relative z-10">
+      <main className="flex-1 w-full max-w-md mx-auto flex flex-col relative z-10 overflow-x-hidden px-1 sm:px-2">
         
         {/* CENTER TAB: Main Dashboard -> Mimi Making */}
         {activeTab === 'beats' && (

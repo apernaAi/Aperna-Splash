@@ -71,15 +71,15 @@ export const TelegramHeader: React.FC<Props> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#051332]/95 backdrop-blur-2xl border-b border-cyan-500/20 px-3.5 py-2 flex items-center justify-between text-white select-none shadow-[0_4px_20px_rgba(0,10,40,0.6)]">
+    <header className="sticky top-0 z-40 w-full max-w-full bg-[#051332]/95 backdrop-blur-2xl border-b border-cyan-500/20 px-2 sm:px-3 py-2 flex items-center justify-between text-white select-none shadow-[0_4px_20px_rgba(0,10,40,0.6)] overflow-hidden">
       {/* Left: Back Button (if on sub-tab) OR User Mini Profile Chip */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-1.5 shrink-0 min-w-0 max-w-[38%]">
         {isNotHome ? (
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-xs font-bold text-cyan-200 border border-cyan-400/40 transition-all active:scale-95 shadow-sm cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/70 text-xs font-bold text-cyan-200 border border-cyan-400/40 transition-all active:scale-95 shadow-sm cursor-pointer whitespace-nowrap"
           >
-            <ArrowLeft className="w-4 h-4 text-cyan-300" />
+            <ArrowLeft className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
             <span>{language === 'hi' ? 'वापस' : 'Back'}</span>
           </button>
         ) : (
@@ -89,19 +89,19 @@ export const TelegramHeader: React.FC<Props> = ({
                 playTapSound();
                 onOpenProfile();
               }}
-              className="flex items-center gap-2 p-1 pr-2.5 rounded-full bg-[#071d47]/80 hover:bg-[#0c2966] border border-cyan-500/30 transition-all active:scale-95 cursor-pointer max-w-[130px] sm:max-w-[160px]"
+              className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-[#071d47]/80 hover:bg-[#0c2966] border border-cyan-500/30 transition-all active:scale-95 cursor-pointer max-w-[120px] sm:max-w-[150px] truncate"
               title="Profile"
             >
-              <div className="w-6 h-6 rounded-full overflow-hidden bg-[#05173e] p-0.5 border border-cyan-400/40 flex-shrink-0">
+              <div className="w-5 h-5 rounded-full overflow-hidden bg-[#05173e] p-0.5 border border-cyan-400/40 shrink-0 flex items-center justify-center">
                 {userAvatarUrl ? (
                   <img src={userAvatarUrl} alt={userName || 'User'} className="w-full h-full object-cover rounded-full" />
                 ) : (
-                  <span className="text-[9px] font-black text-white flex items-center justify-center h-full">
+                  <span className="text-[8px] font-black text-white flex items-center justify-center h-full">
                     {userName ? userName.slice(0, 2).toUpperCase() : 'MM'}
                   </span>
                 )}
               </div>
-              <span className="text-xs font-bold text-cyan-100 truncate">
+              <span className="text-[11px] font-bold text-cyan-100 truncate">
                 {userName || 'Mimi Artist'}
               </span>
             </button>
@@ -110,17 +110,17 @@ export const TelegramHeader: React.FC<Props> = ({
       </div>
 
       {/* Center: Clean Brand Title */}
-      <div className="flex items-center gap-1.5 justify-center">
-        <span className="font-black text-sm tracking-tight text-white drop-shadow-[0_0_10px_rgba(0,210,255,0.6)]">
+      <div className="flex items-center gap-1 justify-center shrink min-w-0 px-1">
+        <span className="font-black text-xs sm:text-sm tracking-tight text-white drop-shadow-[0_0_10px_rgba(0,210,255,0.6)] truncate">
           Music Mimi
         </span>
-        <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#0098ea] text-white text-[9px] font-bold shadow-sm">
+        <span className="inline-flex items-center justify-center w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-[#0098ea] text-white text-[8px] sm:text-[9px] font-bold shadow-sm shrink-0">
           ✓
         </span>
       </div>
 
       {/* Right Controls: Language Switch, Sound Toggle, 3-Dots Menu */}
-      <div className="flex items-center gap-1.5 relative flex-shrink-0">
+      <div className="flex items-center gap-1 sm:gap-1.5 relative shrink-0">
         {/* Language switch */}
         <button
           onClick={() => {
@@ -128,7 +128,7 @@ export const TelegramHeader: React.FC<Props> = ({
             onToggleLanguage();
           }}
           title="Toggle Language"
-          className="px-2 py-1 rounded-xl bg-[#0b2454]/90 text-[11px] font-extrabold text-cyan-300 border border-cyan-400/30 hover:bg-cyan-500/20 active:scale-95 transition-all cursor-pointer font-mono"
+          className="px-1.5 sm:px-2 py-1 rounded-lg bg-[#0b2454]/90 text-[10px] sm:text-[11px] font-extrabold text-cyan-300 border border-cyan-400/30 hover:bg-cyan-500/20 active:scale-95 transition-all cursor-pointer font-mono shrink-0"
         >
           {language === 'hi' ? 'हिन्दी' : 'EN'}
         </button>
@@ -139,7 +139,7 @@ export const TelegramHeader: React.FC<Props> = ({
             playTapSound();
             onToggleMute();
           }}
-          className="p-1.5 rounded-xl bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 active:scale-95 transition-colors cursor-pointer"
+          className="p-1 sm:p-1.5 rounded-lg bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 active:scale-95 transition-colors cursor-pointer shrink-0"
           title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
         >
           {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-500" /> : <Volume2 className="w-3.5 h-3.5 text-cyan-300" />}
@@ -151,14 +151,14 @@ export const TelegramHeader: React.FC<Props> = ({
             playTapSound();
             setShowMenu(!showMenu);
           }}
-          className="p-1.5 rounded-xl bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 active:scale-95 transition-colors cursor-pointer"
+          className="p-1 sm:p-1.5 rounded-lg bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 active:scale-95 transition-colors cursor-pointer shrink-0"
         >
           <MoreVertical className="w-4 h-4" />
         </button>
 
         {/* Dropdown Menu */}
         {showMenu && (
-          <div className="absolute top-10 right-0 w-60 bg-[#06183e] border border-cyan-500/30 rounded-2xl shadow-2xl p-2 z-50 text-xs flex flex-col gap-1 backdrop-blur-xl animate-fadeIn">
+          <div className="absolute top-10 right-0 w-56 sm:w-60 max-w-[calc(100vw-1rem)] bg-[#06183e] border border-cyan-500/30 rounded-2xl shadow-2xl p-2 z-50 text-xs flex flex-col gap-1 backdrop-blur-xl animate-fadeIn">
             {onOpenLibrary && (
               <button
                 onClick={() => {
