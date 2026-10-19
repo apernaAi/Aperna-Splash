@@ -22,12 +22,12 @@ export const BottomNav: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 px-2 sm:px-3 pb-3 pt-1 pointer-events-none">
-      <nav className="max-w-md mx-auto bg-[#07173b]/95 backdrop-blur-2xl border border-cyan-500/30 rounded-3xl px-1.5 py-1.5 shadow-[0_12px_45px_rgba(0,12,38,0.95)] pointer-events-auto flex items-center justify-between relative">
-        {/* Tab 1: टास्क (Tasks) */}
+    <div className="fixed bottom-0 inset-x-0 z-40 px-2 sm:px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-1 pointer-events-none">
+      <nav className="max-w-md mx-auto bg-[#07173b]/95 backdrop-blur-2xl border border-cyan-500/30 rounded-3xl px-1 py-1.5 shadow-[0_12px_45px_rgba(0,12,38,0.95)] pointer-events-auto flex items-center justify-between relative">
+        {/* Tab 1: Tasks */}
         <button
           onClick={() => handleSelect('tasks')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
+          className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
             activeTab === 'tasks' ? 'scale-105 opacity-100' : 'opacity-70 hover:opacity-100'
           }`}
         >
@@ -47,7 +47,7 @@ export const BottomNav: React.FC<Props> = ({
             )}
           </div>
           <span
-            className={`text-[10px] mt-0.5 font-bold tracking-tight ${
+            className={`text-[10px] mt-0.5 font-bold tracking-tight truncate max-w-full px-0.5 ${
               activeTab === 'tasks' ? 'text-cyan-300 font-black' : 'text-slate-300'
             }`}
           >
@@ -55,10 +55,10 @@ export const BottomNav: React.FC<Props> = ({
           </span>
         </button>
 
-        {/* Tab 2: लाइव रैंक (Real Users Rank & Leaderboard) */}
+        {/* Tab 2: Rank */}
         <button
           onClick={() => handleSelect('rank')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
+          className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
             activeTab === 'rank' ? 'scale-105 opacity-100' : 'opacity-70 hover:opacity-100'
           }`}
         >
@@ -73,7 +73,7 @@ export const BottomNav: React.FC<Props> = ({
             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.9)]" />
           </div>
           <span
-            className={`text-[10px] mt-0.5 font-bold tracking-tight ${
+            className={`text-[10px] mt-0.5 font-bold tracking-tight truncate max-w-full px-0.5 ${
               activeTab === 'rank' ? 'text-amber-300 font-black drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'text-slate-300'
             }`}
           >
@@ -81,11 +81,11 @@ export const BottomNav: React.FC<Props> = ({
           </span>
         </button>
 
-        {/* Tab 3: बीट्स (Center Raised Floating Vinyl Button) */}
-        <div className="flex-1 flex flex-col items-center justify-center -mt-5">
+        {/* Tab 3: Center Mimi Vinyl Button */}
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center -mt-5">
           <button
             onClick={() => handleSelect('beats')}
-            className={`group relative w-13 h-13 rounded-full p-1 transition-all duration-300 cursor-pointer ${
+            className={`group relative w-12 h-12 sm:w-13 sm:h-13 rounded-full p-1 transition-all duration-300 cursor-pointer ${
               activeTab === 'beats'
                 ? 'scale-110 shadow-[0_0_30px_rgba(0,210,255,0.8)]'
                 : 'hover:scale-105 shadow-[0_0_15px_rgba(0,0,0,0.7)]'
@@ -107,7 +107,7 @@ export const BottomNav: React.FC<Props> = ({
             </div>
           </button>
           <span
-            className={`text-[10px] mt-0.5 font-bold tracking-tight ${
+            className={`text-[10px] mt-0.5 font-bold tracking-tight truncate max-w-full px-0.5 ${
               activeTab === 'beats' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(0,210,255,0.8)]' : 'text-slate-300'
             }`}
           >
@@ -115,36 +115,10 @@ export const BottomNav: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* Tab 4: 1,000 Early Reserve Pool */}
-        <button
-          onClick={() => handleSelect('nft')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
-            activeTab === 'nft' ? 'scale-105 opacity-100' : 'opacity-70 hover:opacity-100'
-          }`}
-        >
-          <div className="relative w-7 h-7 flex items-center justify-center">
-            <div className={`w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-slate-950 flex items-center justify-center text-xs font-black shadow-sm ${
-              activeTab === 'nft' ? 'scale-110 shadow-[0_0_12px_rgba(0,210,255,0.8)]' : ''
-            }`}>
-              🎟️
-            </div>
-            <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-cyan-400 text-slate-950 text-[7.5px] font-black uppercase tracking-tight shadow animate-pulse">
-              1,000
-            </span>
-          </div>
-          <span
-            className={`text-[10px] mt-0.5 font-bold tracking-tight ${
-              activeTab === 'nft' ? 'text-cyan-300 font-black' : 'text-slate-300'
-            }`}
-          >
-            {language === 'hi' ? '1000 पूल' : '1K Pool'}
-          </span>
-        </button>
-
-        {/* Tab 5: तिजोरी / वॉलेट (Vault) */}
+        {/* Tab 4: Vault */}
         <button
           onClick={() => handleSelect('vault')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
+          className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
             activeTab === 'vault' ? 'scale-105 opacity-100' : 'opacity-70 hover:opacity-100'
           }`}
         >
@@ -159,7 +133,7 @@ export const BottomNav: React.FC<Props> = ({
             />
           </div>
           <span
-            className={`text-[10px] mt-0.5 font-bold tracking-tight ${
+            className={`text-[10px] mt-0.5 font-bold tracking-tight truncate max-w-full px-0.5 ${
               activeTab === 'vault' ? 'text-emerald-400 font-black' : 'text-slate-300'
             }`}
           >
@@ -167,10 +141,10 @@ export const BottomNav: React.FC<Props> = ({
           </span>
         </button>
 
-        {/* Tab 6: प्रोफ़ाइल (Profile) */}
+        {/* Tab 5: Profile */}
         <button
           onClick={() => handleSelect('profile')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
+          className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1 transition-all duration-200 cursor-pointer ${
             activeTab === 'profile' ? 'scale-105 opacity-100' : 'opacity-70 hover:opacity-100'
           }`}
         >
@@ -182,11 +156,11 @@ export const BottomNav: React.FC<Props> = ({
             </div>
           </div>
           <span
-            className={`text-[10px] mt-0.5 font-bold tracking-tight ${
+            className={`text-[10px] mt-0.5 font-bold tracking-tight truncate max-w-full px-0.5 ${
               activeTab === 'profile' ? 'text-sky-300 font-black' : 'text-slate-300'
             }`}
           >
-            {language === 'hi' ? 'प्रोफ़ाइल' : 'Squad'}
+            {language === 'hi' ? 'प्रोफ़ाइल' : 'Profile'}
           </span>
         </button>
       </nav>

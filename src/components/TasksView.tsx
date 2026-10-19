@@ -195,7 +195,7 @@ export const TasksView: React.FC<Props> = ({
   const isTimerDone = activeTaskRemaining === 0;
 
   return (
-    <div className="w-full flex flex-col gap-4 pb-28 pt-2 px-4 select-none">
+    <div className="w-full flex flex-col gap-4 pb-36 pt-2 px-4 select-none">
       {/* 1. Mimi Beat Rush Arcade Banner */}
       <button
         onClick={() => {

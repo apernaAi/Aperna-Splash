@@ -123,7 +123,7 @@ export const AirdropWalletView: React.FC<Props> = ({
   const realMinedTokens = Number((stats.inAppBalance || 0).toFixed(2));
 
   return (
-    <div className="w-full space-y-4 px-4 pt-1 pb-24 text-white">
+    <div className="w-full space-y-4 px-4 pt-1 pb-36 text-white">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -264,41 +264,40 @@ export const AirdropWalletView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* 2. OFFICIAL USER NOTICE ON DEX LISTING & REAL REWARDS */}
-      <div className="p-4 rounded-3xl bg-gradient-to-br from-cyan-950/80 via-[#031d45] to-[#020e26] border-2 border-cyan-400/50 shadow-[0_8px_30px_rgba(0,180,255,0.2)] space-y-2">
+      {/* 2. DEX LISTING & TOKEN CLAIM ACTION CARD */}
+      <div className="p-4 rounded-3xl bg-gradient-to-br from-[#06183e] via-[#041230] to-[#020b1f] border border-cyan-400/40 shadow-lg space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+            <div className="w-8 h-8 rounded-xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
               <Sparkles className="w-4 h-4" />
             </div>
-            <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wide">
-              {language === 'hi' ? 'आधिकारिक DEX क्लेम सूचना' : 'Official DEX Claim Notice'}
-            </span>
+            <div>
+              <span className="text-xs font-black text-white block">
+                {language === 'hi' ? 'DEX टोकन क्लेम' : 'DEX Listing & Claim'}
+              </span>
+              <span className="text-[10px] text-cyan-300/80 font-mono">
+                DeDust / STON.fi · TEP-74 Jetton
+              </span>
+            </div>
           </div>
-          <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-400/30">
-            DeDust / STON.fi
-          </span>
-        </div>
-
-        <p className="text-xs text-cyan-100/95 leading-relaxed italic bg-black/30 p-3 rounded-2xl border border-cyan-400/20">
-          "{language === 'hi' ? TON_CONFIG.dexListingNoticeHi : TON_CONFIG.dexListingNotice}"
-        </p>
-
-        <div className="flex items-center justify-between pt-1 text-[11px] font-mono">
-          <span className="text-cyan-300/80">
-            {language === 'hi' ? 'टोकन मानक:' : 'Standard:'} <strong className="text-white">{TON_CONFIG.standard}</strong>
-          </span>
+          
           <button
             onClick={() => {
               if (onOpenClaimModal) onOpenClaimModal();
               else handleWithdrawToTon();
             }}
-            className="text-cyan-300 hover:text-white underline font-bold flex items-center gap-1 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 hover:from-cyan-300 hover:to-sky-200 text-slate-950 font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <span>{language === 'hi' ? 'क्लेम डैशबोर्ड खोलें' : 'Open Claim Portal'}</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>{language === 'hi' ? 'दावा करें' : 'Claim Tokens'}</span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-950" />
           </button>
         </div>
+
+        <p className="text-[11px] text-slate-300 leading-relaxed bg-black/40 p-2.5 rounded-xl border border-cyan-500/20">
+          {language === 'hi'
+            ? 'आपके द्वारा माइन किए गए सभी $MIMI टोकन सुरक्षित हैं। DEX लिस्टिंग पर आप इन्हें सीधे अपने कनेक्टेड TON वॉलेट में क्लेम कर सकेंगे।'
+            : 'All mined $MIMI tokens are verified & safe. Upon official DEX listing, you can claim them directly into your connected TON wallet.'}
+        </p>
       </div>
 
       {/* Quick Action: Transfer / Claim notification */}

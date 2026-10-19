@@ -238,7 +238,15 @@ export default function App() {
   const tonAddress = useTonAddress();
   // Center Beats tab is our main dashboard as requested!
   const [activeTab, setActiveTab] = useState<TabType>('beats');
-  const [language, setLanguage] = useState<Language>('hi');
+  const [language, setLanguage] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('music_mimi_lang_v2');
+        if (saved === 'hi' || saved === 'en') return saved;
+      } catch {}
+    }
+    return 'en';
+  });
   const [isMuted, setIsMuted] = useState(() => isMutedEngine());
   const [showSplash, setShowSplash] = useState(false);
 
@@ -305,6 +313,7 @@ export default function App() {
       localStorage.removeItem('music_mimi_visited_tasks');
       localStorage.removeItem('music_mimi_task_start_times');
       localStorage.removeItem('music_mimi_refs_clean_v4');
+      localStorage.removeItem('music_mimi_lang');
     } catch {}
   }, []);
 
@@ -560,7 +569,13 @@ export default function App() {
   };
 
   const handleToggleLanguage = () => {
-    setLanguage((prev) => (prev === 'hi' ? 'en' : 'hi'));
+    setLanguage((prev) => {
+      const next = prev === 'hi' ? 'en' : 'hi';
+      try {
+        localStorage.setItem('music_mimi_lang_v2', next);
+      } catch {}
+      return next;
+    });
   };
 
   const handleResetStats = () => {
@@ -829,6 +844,7 @@ export default function App() {
             referrals={referrals}
             onUpdateStats={handleUpdateStatsWithCommission}
             onOpenClaimModal={() => setIsClaimModalOpen(true)}
+            onOpenNftPage={() => setActiveTab('nft')}
             language={language}
           />
         )}

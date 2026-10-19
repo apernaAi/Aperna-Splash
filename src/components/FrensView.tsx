@@ -37,6 +37,7 @@ interface Props {
   referrals: RealReferral[];
   onUpdateStats: (newStats: UserStats) => void;
   onOpenClaimModal?: () => void;
+  onOpenNftPage?: () => void;
   language: Language;
 }
 
@@ -45,6 +46,7 @@ export const FrensView: React.FC<Props> = ({
   referrals,
   onUpdateStats,
   onOpenClaimModal,
+  onOpenNftPage,
   language,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
@@ -248,156 +250,130 @@ export const FrensView: React.FC<Props> = ({
   };
 
   return (
-    <div className="w-full flex flex-col gap-3.5 pb-28 pt-2 px-4 select-none">
-      {/* 1. Artist Community ID Card */}
-      <div className="relative w-full rounded-3xl p-4 sm:p-5 overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#0369a1] to-[#1e40af] border border-cyan-400/40 shadow-[0_12px_40px_rgba(2,132,199,0.4)] text-white glass-sheen">
-        <div className="absolute inset-0 bg-white/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent pointer-events-none" />
-
-        <div className="flex items-center justify-between text-xs font-mono font-bold tracking-wider text-cyan-200 uppercase mb-2.5">
-          <span>MUSIC MIMI · {language === 'hi' ? 'कलाकार कम्युनिटी ID' : 'ARTIST COMMUNITY ID'}</span>
-          <span className="text-[10px] bg-black/30 px-2 py-0.5 rounded-full border border-cyan-300/20">{stats.userId || 'MIMI-01'}</span>
-        </div>
-
+    <div className="w-full flex flex-col gap-3 pb-40 pt-1 px-3.5 select-none">
+      {/* 1. Sleek Modern Profile Card */}
+      <div className="relative w-full rounded-3xl p-4 overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#0369a1] to-[#1e40af] border border-cyan-400/40 shadow-[0_12px_35px_rgba(2,132,199,0.35)] text-white">
         <div className="flex items-center justify-between gap-3 relative z-10">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5 mb-1.5">
-              {/* Avatar Logo with Camera badge & Click-to-edit */}
-              <div 
-                onClick={() => {
-                  playTapSound();
-                  setIsAvatarModalOpen(true);
-                }}
-                className="relative group cursor-pointer flex-shrink-0"
-                title={language === 'hi' ? 'लोगो या फोटो बदलें' : 'Change Avatar / Logo'}
-              >
-                <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-cyan-400 via-sky-300 to-amber-300 p-0.5 shadow-md group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(0,210,255,0.7)] transition-all">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-[#05173e] flex items-center justify-center text-white font-black text-base">
-                    {stats.avatarUrl ? (
-                      <img 
-                        src={stats.avatarUrl} 
-                        alt={stats.name} 
-                        className="w-full h-full object-cover" 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = ASSETS.minerCharacter;
-                        }}
-                      />
-                    ) : (
-                      <span>{stats.name ? stats.name.slice(0, 2).toUpperCase() : 'MM'}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 shadow border border-white group-hover:scale-110 transition-all">
-                  <Camera className="w-2.5 h-2.5 text-slate-950" />
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Avatar with Camera badge */}
+            <div 
+              onClick={() => {
+                playTapSound();
+                setIsAvatarModalOpen(true);
+              }}
+              className="relative group cursor-pointer flex-shrink-0"
+              title={language === 'hi' ? 'लोगो या फोटो बदलें' : 'Change Avatar / Logo'}
+            >
+              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-400 via-sky-300 to-amber-300 p-0.5 shadow-md group-hover:scale-105 transition-all">
+                <div className="w-full h-full rounded-full overflow-hidden bg-[#05173e] flex items-center justify-center text-white font-black text-base">
+                  {stats.avatarUrl ? (
+                    <img 
+                      src={stats.avatarUrl} 
+                      alt={stats.name} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = ASSETS.minerCharacter;
+                      }}
+                    />
+                  ) : (
+                    <span>{stats.name ? stats.name.slice(0, 2).toUpperCase() : 'MM'}</span>
+                  )}
                 </div>
               </div>
+              <div className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 shadow border border-white">
+                <Camera className="w-2.5 h-2.5 text-slate-950" />
+              </div>
+            </div>
 
-              <div className="min-w-0">
-                {isEditingName ? (
-                  <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-black/60 border border-cyan-400/50">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-slate-300 font-bold w-10">नाम:</span>
-                      <input
-                        type="text"
-                        value={tempName}
-                        onChange={(e) => setTempName(e.target.value)}
-                        placeholder="नाम"
-                        className="bg-black/50 text-white text-xs font-bold px-2 py-0.5 rounded border border-cyan-300/40 w-32 outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-cyan-300 font-bold w-10 flex items-center gap-0.5">
-                        <TelegramIcon className="w-3 h-3 text-[#24A1DE]" /> TG:
-                      </span>
-                      <input
-                        type="text"
-                        value={tempUsername}
-                        onChange={(e) => setTempUsername(e.target.value)}
-                        placeholder="@username"
-                        className="bg-black/50 text-cyan-200 text-xs font-mono font-bold px-2 py-0.5 rounded border border-cyan-300/40 w-32 outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <button
-                        onClick={handleSaveName}
-                        className="text-[10px] bg-cyan-400 hover:bg-cyan-300 text-black px-2.5 py-1 rounded-md font-black cursor-pointer shadow"
-                      >
-                        ✓ सुरक्षित करें
-                      </button>
-                      <button
-                        onClick={() => setIsEditingName(false)}
-                        className="text-[10px] bg-white/10 hover:bg-white/20 text-slate-300 px-2 py-1 rounded-md cursor-pointer"
-                      >
-                        रद्द
-                      </button>
-                    </div>
+            {/* User Name & Telegram Info */}
+            <div className="min-w-0">
+              {isEditingName ? (
+                <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-black/70 border border-cyan-400/50">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-slate-300 font-bold w-12">{language === 'hi' ? 'नाम:' : 'Name:'}</span>
+                    <input
+                      type="text"
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      placeholder="Name"
+                      className="bg-black/50 text-white text-xs font-bold px-2 py-0.5 rounded border border-cyan-300/40 w-32 outline-none"
+                    />
                   </div>
-                ) : (
-                  <div>
-                    <div 
-                      className="flex items-center gap-1.5 cursor-pointer group" 
-                      onClick={() => {
-                        playTapSound();
-                        setIsAvatarModalOpen(true);
-                      }}
-                    >
-                      <h2 className="text-lg font-black text-white tracking-tight truncate drop-shadow-sm group-hover:text-cyan-200">
-                        {stats.name || (language === 'hi' ? 'नया कलाकार' : 'New Producer')}
-                      </h2>
-                      <div className="p-1 rounded-full bg-cyan-400/20 group-hover:bg-cyan-400 text-cyan-200 group-hover:text-slate-950 transition-all">
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-cyan-200 font-mono mt-0.5">
-                      <TelegramIcon className="w-3.5 h-3.5 text-[#24A1DE] flex-shrink-0" />
-                      <span className="font-semibold">{stats.telegramUsername || '@mimi_user'}</span>
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-cyan-300 font-bold w-12 flex items-center gap-0.5">
+                      <TelegramIcon className="w-3 h-3 text-[#24A1DE]" /> TG:
+                    </span>
+                    <input
+                      type="text"
+                      value={tempUsername}
+                      onChange={(e) => setTempUsername(e.target.value)}
+                      placeholder="@username"
+                      className="bg-black/50 text-cyan-200 text-xs font-mono font-bold px-2 py-0.5 rounded border border-cyan-300/40 w-32 outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
                     <button
-                      type="button"
-                      onClick={() => {
-                        playTapSound();
-                        setIsAvatarModalOpen(true);
-                      }}
-                      className="mt-1 flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-400/20 hover:bg-cyan-400/30 text-cyan-200 text-[9.5px] font-bold border border-cyan-300/30 cursor-pointer active:scale-95 transition-all"
+                      onClick={handleSaveName}
+                      className="text-[10px] bg-cyan-400 hover:bg-cyan-300 text-black px-2.5 py-1 rounded-md font-black cursor-pointer shadow"
                     >
-                      <Camera className="w-2.5 h-2.5 text-cyan-300" />
-                      <span>{language === 'hi' ? 'लोगो व प्रोफाइल बदलें' : 'Edit Logo & Profile'}</span>
+                      ✓ {language === 'hi' ? 'सुरक्षित करें' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setIsEditingName(false)}
+                      className="text-[10px] bg-white/10 hover:bg-white/20 text-slate-300 px-2 py-1 rounded-md cursor-pointer"
+                    >
+                      {language === 'hi' ? 'रद्द' : 'Cancel'}
                     </button>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              ) : (
+                <div>
+                  <div 
+                    className="flex items-center gap-1.5 cursor-pointer group" 
+                    onClick={() => {
+                      playTapSound();
+                      setIsEditingName(true);
+                    }}
+                  >
+                    <h2 className="text-base sm:text-lg font-black text-white tracking-tight truncate drop-shadow-sm group-hover:text-cyan-200">
+                      {stats.name || (language === 'hi' ? 'नया कलाकार' : 'Mimi Artist')}
+                    </h2>
+                    <div className="p-1 rounded-full bg-cyan-400/20 group-hover:bg-cyan-400 text-cyan-200 group-hover:text-slate-950 transition-all">
+                      <Edit2 className="w-3 h-3" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-cyan-200 font-mono mt-0.5">
+                    <TelegramIcon className="w-3.5 h-3.5 text-[#24A1DE] flex-shrink-0" />
+                    <span className="font-semibold">{stats.telegramUsername || '@mimi_user'}</span>
+                  </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 my-1.5">
-              <span className="px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-[10px] font-black shadow-sm">
-                {language === 'hi' ? `लेवल ${stats.level}` : `Level ${stats.level}`}
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-[#071d47] text-cyan-200 text-[10px] font-bold border border-cyan-400/30">
-                {language === 'hi' ? stats.traineeBadge : 'Creator'}
-              </span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1 ${
-                stats.walletAddress
-                  ? 'bg-emerald-500/80 text-white'
-                  : 'bg-black/30 text-cyan-300/80 border border-cyan-500/30'
-              }`}>
-                <span>{stats.walletAddress ? '✓' : '○'}</span>
-                <span>{stats.walletAddress ? (language === 'hi' ? 'वॉलेट जुड़ा' : 'Wallet Linked') : (language === 'hi' ? 'बिना वॉलेट' : 'No Wallet')}</span>
-              </span>
-            </div>
-
-            <div>
-              <span className="text-xs font-black text-amber-300 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
-                {language === 'hi' ? stats.roleTitle : 'Sonic Pioneer'}
-              </span>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-[10px] font-black font-mono shadow-sm">
+                      Lvl {stats.level}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1 ${
+                      stats.walletAddress
+                        ? 'bg-emerald-500/80 text-white'
+                        : 'bg-black/30 text-cyan-300/80 border border-cyan-500/30'
+                    }`}>
+                      <span>{stats.walletAddress ? '✓' : '○'}</span>
+                      <span>{stats.walletAddress ? (language === 'hi' ? 'वॉलेट जुड़ा' : 'Wallet Linked') : (language === 'hi' ? 'बिना वॉलेट' : 'No Wallet')}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 relative">
-            <img
-              src={ASSETS.mimiMascot}
-              alt="Music Mimi Mascot"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-contain rounded-2xl drop-shadow-[0_8px_25px_rgba(0,10,35,0.7)]"
-            />
+          {/* Right: Balance Pill */}
+          <div className="flex flex-col items-end shrink-0">
+            <span className="text-[10px] font-mono text-cyan-200 uppercase font-bold tracking-wider">
+              {language === 'hi' ? 'कुल बैलेंस' : 'Balance'}
+            </span>
+            <span className="text-xl font-black font-mono text-amber-300 mt-0.5 drop-shadow">
+              {stats.balance.toLocaleString()}
+            </span>
+            <span className="text-[10px] font-mono text-cyan-300/80">$MIMI</span>
           </div>
         </div>
       </div>
@@ -539,6 +515,37 @@ export const FrensView: React.FC<Props> = ({
         </button>
       </div>
 
+      {/* 4.5 Dedicated 1,000 Early Reserve Pool Card */}
+      {onOpenNftPage && (
+        <button
+          onClick={() => {
+            playTapSound();
+            onOpenNftPage();
+          }}
+          className="relative w-full rounded-2xl p-3.5 text-left bg-gradient-to-r from-[#031d47] via-[#02183a] to-[#011029] border border-cyan-400/40 hover:border-cyan-400/70 shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between gap-3 group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-xl shadow group-hover:scale-105 transition-transform">
+              🎟️
+            </div>
+            <div>
+              <div className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+                <span>{language === 'hi' ? '1,000 सदस्यों का रिज़र्व पूल' : '1,000 Early Reserve Pool'}</span>
+                <span className="text-[9.5px] font-mono font-bold bg-cyan-400/20 text-cyan-300 px-1.5 py-0.2 rounded-full border border-cyan-400/30">
+                  1,000 MAX
+                </span>
+              </div>
+              <div className="text-[10px] text-cyan-200/80 font-mono mt-0.5">
+                {language === 'hi' ? 'क्लाउड सिंक समुदाय स्लॉट देखें' : 'View verified community reservation slots'}
+              </div>
+            </div>
+          </div>
+          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-cyan-300 group-hover:translate-x-0.5 transition-transform">
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </button>
+      )}
+
       {/* 5. Clean Referral Share Box */}
       <div className="relative w-full rounded-3xl p-4 sm:p-5 overflow-hidden bg-gradient-to-br from-[#0284c7] via-[#2563eb] to-[#4f46e5] border border-cyan-400/40 shadow-lg text-white space-y-3.5">
         <div className="flex items-center justify-between">
@@ -569,7 +576,9 @@ export const FrensView: React.FC<Props> = ({
             </div>
           </div>
           <div className="p-2.5 rounded-2xl bg-black/40 border border-white/15">
-            <div className="text-sm font-black text-emerald-300 font-mono">+10% कमीशन</div>
+            <div className="text-sm font-black text-emerald-300 font-mono">
+              {language === 'hi' ? '+10% कमीशन' : '+10% Royalty'}
+            </div>
             <div className="text-[10px] text-cyan-200 font-medium mt-0.5">
               {language === 'hi' ? 'दोस्त की कमाई से आजीवन' : 'Lifetime recruit yields'}
             </div>

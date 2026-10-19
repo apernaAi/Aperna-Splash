@@ -139,29 +139,15 @@ export const ApernaNftPage: React.FC<Props> = ({
   const isFull = reservedCount >= MAX_POOL_CAPACITY;
 
   return (
-    <div className="w-full space-y-4 px-4 pt-1 pb-28 text-white select-none animate-fadeIn">
+    <div className="w-full space-y-4 px-3.5 pt-1 pb-36 text-white select-none animate-fadeIn">
       {/* Top Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              playTapSound();
-              onBack();
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#091b40] hover:bg-[#0f2c66] border border-cyan-500/30 text-xs font-bold text-cyan-200 transition-all active:scale-95 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>{language === 'hi' ? 'वापस' : 'Back'}</span>
-          </button>
-          <div>
-            <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-              <span>🎟️ {language === 'hi' ? '1,000 रिज़र्व पूल' : '1,000 Reserve Pool'}</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-mono font-bold border border-cyan-400/40">
-                1,000 MAX
-              </span>
-            </h2>
-          </div>
-        </div>
+        <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+          <span>🎟️ {language === 'hi' ? '1,000 रिज़र्व पूल' : '1,000 Reserve Pool'}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 font-mono font-bold border border-cyan-400/40">
+            1,000 MAX
+          </span>
+        </h2>
 
         <div className="flex items-center gap-1">
           <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/70 px-2.5 py-1 rounded-xl border border-amber-400/40 flex items-center gap-1 shadow-sm">

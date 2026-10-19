@@ -71,120 +71,56 @@ export const TelegramHeader: React.FC<Props> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#051332]/95 backdrop-blur-2xl border-b border-cyan-500/25 px-3 sm:px-4 py-2.5 flex items-center justify-between text-white select-none shadow-[0_4px_25px_rgba(0,10,40,0.7)]">
-      {/* Left: Back Button (if on another page) OR Close Pill + Quick NFT Pill */}
-      <div className="flex items-center gap-1.5">
+    <header className="sticky top-0 z-40 w-full bg-[#051332]/95 backdrop-blur-2xl border-b border-cyan-500/20 px-3.5 py-2 flex items-center justify-between text-white select-none shadow-[0_4px_20px_rgba(0,10,40,0.6)]">
+      {/* Left: Back Button (if on sub-tab) OR User Mini Profile Chip */}
+      <div className="flex items-center gap-2 min-w-0">
         {isNotHome ? (
           <button
             onClick={handleBack}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-xs font-black text-cyan-200 border border-cyan-400/50 transition-all active:scale-95 shadow-[0_0_10px_rgba(0,210,255,0.3)] cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-xs font-bold text-cyan-200 border border-cyan-400/40 transition-all active:scale-95 shadow-sm cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 text-cyan-300" />
             <span>{language === 'hi' ? 'वापस' : 'Back'}</span>
           </button>
         ) : (
-          <button
-            onClick={handleClose}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0c224e]/80 hover:bg-[#12316e] text-xs font-semibold text-cyan-200 border border-cyan-500/30 transition-all active:scale-95 shadow-sm cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5 text-cyan-300" />
-            <span>Close</span>
-          </button>
-        )}
-
-        {/* Live Rank Button */}
-        {onOpenRankPage && (
-          <button
-            onClick={() => {
-              playTapSound();
-              onOpenRankPage();
-            }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold active:scale-95 transition-all shadow-[0_0_10px_rgba(245,158,11,0.3)] cursor-pointer ${
-              activeTab === 'rank'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black border border-amber-300 shadow-[0_0_14px_rgba(245,158,11,0.7)]'
-                : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 text-amber-300 border border-amber-400/40'
-            }`}
-            title="Live Users Rank"
-          >
-            <Trophy className="w-3.5 h-3.5 text-amber-300" />
-            <span className="font-mono text-[11px] font-black">{language === 'hi' ? 'रैंक' : 'Rank'}</span>
-          </button>
-        )}
-
-        {/* Top 1,000 Early Pool Button - Takes user to dedicated 1000 Reserve Pool */}
-        {onOpenNftPage && (
-          <button
-            onClick={() => {
-              playTapSound();
-              onOpenNftPage();
-            }}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold active:scale-95 transition-all shadow-[0_0_12px_rgba(0,210,255,0.3)] cursor-pointer ${
-              activeTab === 'nft'
-                ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black border border-cyan-300'
-                : 'bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-400/50 text-cyan-300'
-            }`}
-            title="1,000 Early Reserve Pool"
-          >
-            <Users className="w-3.5 h-3.5 text-cyan-300" />
-            <span className="font-mono text-[11px] font-black">{language === 'hi' ? '1,000 पूल' : '1,000 Pool'}</span>
-          </button>
+          onOpenProfile && (
+            <button
+              onClick={() => {
+                playTapSound();
+                onOpenProfile();
+              }}
+              className="flex items-center gap-2 p-1 pr-2.5 rounded-full bg-[#071d47]/80 hover:bg-[#0c2966] border border-cyan-500/30 transition-all active:scale-95 cursor-pointer max-w-[130px] sm:max-w-[160px]"
+              title="Profile"
+            >
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-[#05173e] p-0.5 border border-cyan-400/40 flex-shrink-0">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt={userName || 'User'} className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <span className="text-[9px] font-black text-white flex items-center justify-center h-full">
+                    {userName ? userName.slice(0, 2).toUpperCase() : 'MM'}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-bold text-cyan-100 truncate">
+                {userName || 'Mimi Artist'}
+              </span>
+            </button>
+          )
         )}
       </div>
 
-      {/* Center: Music Mimi with Verified Check */}
-      <div className="flex items-center gap-1.5">
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-1.5">
-            <span className="font-black text-sm sm:text-base tracking-tight text-white drop-shadow-[0_0_12px_rgba(0,210,255,0.7)]">
-              Music Mimi
-            </span>
-            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#0098ea] text-white text-[10px] font-bold shadow-[0_0_8px_rgba(0,152,234,0.8)]">
-              ✓
-            </span>
-          </div>
-          <span className="text-[9px] text-cyan-400 font-mono tracking-wider -mt-0.5">
-            $MIMI Protocol
-          </span>
-        </div>
+      {/* Center: Clean Brand Title */}
+      <div className="flex items-center gap-1.5 justify-center">
+        <span className="font-black text-sm tracking-tight text-white drop-shadow-[0_0_10px_rgba(0,210,255,0.6)]">
+          Music Mimi
+        </span>
+        <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#0098ea] text-white text-[9px] font-bold shadow-sm">
+          ✓
+        </span>
       </div>
 
-      {/* Right Controls: User Avatar, Z+ Shield, Language Switch, Sound, Menu */}
-      <div className="flex items-center gap-1.5 relative">
-        {/* User Avatar Logo Quick Access to Profile */}
-        {onOpenProfile && (
-          <button
-            onClick={() => {
-              playTapSound();
-              onOpenProfile();
-            }}
-            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full p-0.5 bg-gradient-to-tr from-cyan-400 via-sky-300 to-amber-300 shadow-[0_0_8px_rgba(0,210,255,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex-shrink-0"
-            title={userName ? `${userName} (Profile & Logo)` : 'Profile & Logo'}
-          >
-            <div className="w-full h-full rounded-full overflow-hidden bg-[#05173e] flex items-center justify-center">
-              {userAvatarUrl ? (
-                <img src={userAvatarUrl} alt={userName || 'User'} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[9px] font-black text-white">
-                  {userName ? userName.slice(0, 2).toUpperCase() : 'MM'}
-                </span>
-              )}
-            </div>
-          </button>
-        )}
-
-        {/* Z+ Security Shield status button */}
-        <button
-          onClick={() => {
-            playTapSound();
-            if (onOpenSecurityModal) onOpenSecurityModal();
-            else onShowSplash();
-          }}
-          className="p-1.5 rounded-full bg-emerald-950/60 text-emerald-300 hover:text-white border border-emerald-400/40 shadow-[0_0_8px_rgba(16,185,129,0.4)] transition-all cursor-pointer"
-          title="Z+ Security Shield Active"
-        >
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-        </button>
-
+      {/* Right Controls: Language Switch, Sound Toggle, 3-Dots Menu */}
+      <div className="flex items-center gap-1.5 relative flex-shrink-0">
         {/* Language switch */}
         <button
           onClick={() => {
@@ -192,7 +128,7 @@ export const TelegramHeader: React.FC<Props> = ({
             onToggleLanguage();
           }}
           title="Toggle Language"
-          className="px-2 py-0.5 rounded-lg bg-[#0b2454]/90 text-[11px] font-bold text-cyan-300 border border-cyan-400/30 hover:bg-cyan-500/20 transition-all cursor-pointer"
+          className="px-2 py-1 rounded-xl bg-[#0b2454]/90 text-[11px] font-extrabold text-cyan-300 border border-cyan-400/30 hover:bg-cyan-500/20 active:scale-95 transition-all cursor-pointer font-mono"
         >
           {language === 'hi' ? 'हिन्दी' : 'EN'}
         </button>
@@ -203,7 +139,7 @@ export const TelegramHeader: React.FC<Props> = ({
             playTapSound();
             onToggleMute();
           }}
-          className="p-1.5 rounded-full bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 transition-colors cursor-pointer"
+          className="p-1.5 rounded-xl bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 active:scale-95 transition-colors cursor-pointer"
           title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
         >
           {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-500" /> : <Volume2 className="w-3.5 h-3.5 text-cyan-300" />}
@@ -215,7 +151,7 @@ export const TelegramHeader: React.FC<Props> = ({
             playTapSound();
             setShowMenu(!showMenu);
           }}
-          className="p-1.5 rounded-full bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 transition-colors cursor-pointer"
+          className="p-1.5 rounded-xl bg-[#0b2454]/90 text-cyan-200 hover:text-white border border-cyan-500/20 active:scale-95 transition-colors cursor-pointer"
         >
           <MoreVertical className="w-4 h-4" />
         </button>
