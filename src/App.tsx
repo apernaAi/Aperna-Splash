@@ -234,7 +234,120 @@ function createInitialStats(): UserStats {
   };
 }
 
-const DEFAULT_TASKS: AirdropTask[] = [];
+const DEFAULT_TASKS: AirdropTask[] = [
+  {
+    id: 'tg-musicmimi-community',
+    category: 'community',
+    subType: 'telegram',
+    title: 'Music Mimi कम्युनिटी चैनल जॉइन करें (+25 $MIMI)',
+    titleEn: 'Join Music Mimi Community Channel (+25 $MIMI)',
+    description: 'आधिकारिक $MIMI कम्युनिटी चैनल से जुड़ें और ताज़ा अपडेट्स व 25 $MIMI पाएं।',
+    descriptionEn: 'Join official Music Mimi Community channel for announcements & earn 25 $MIMI.',
+    reward: 25,
+    iconType: 'telegram',
+    actionUrl: 'https://t.me/musicmimi_community',
+    requiredWaitSeconds: 15,
+    verificationType: 'external_confirmed',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'tg-aperna-official',
+    category: 'social',
+    subType: 'telegram',
+    title: 'Aperna AI आधिकारिक चैनल जॉइन करें (+20 $MIMI)',
+    titleEn: 'Join Aperna AI Official Channel (+20 $MIMI)',
+    description: 'Aperna AI इकोसिस्टम के आधिकारिक टेलीग्राम चैनल को जॉइन करें और 20 $MIMI क्लेम करें।',
+    descriptionEn: 'Join official Aperna AI Telegram channel for ecosystem alerts and claim 20 $MIMI.',
+    reward: 20,
+    iconType: 'telegram',
+    actionUrl: 'https://t.me/ApernaAIOfficial',
+    requiredWaitSeconds: 15,
+    verificationType: 'external_confirmed',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'discord-official-community',
+    category: 'social',
+    subType: 'other',
+    title: 'आधिकारिक Discord सर्वर जॉइन करें (+20 $MIMI)',
+    titleEn: 'Join Official Discord Community (+20 $MIMI)',
+    description: 'Discord सर्वर जॉइन करें, कम्युनिटी से जुड़ें और 20 $MIMI प्राप्त करें।',
+    descriptionEn: 'Join our official Discord server, meet fellow producers and claim 20 $MIMI.',
+    reward: 20,
+    iconType: 'discord',
+    actionUrl: 'https://discord.gg/3hjUXrfVQe',
+    requiredWaitSeconds: 15,
+    verificationType: 'external_confirmed',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'tg-victors-company-bot',
+    category: 'partner',
+    subType: 'partner',
+    title: 'Victors Company बॉट लॉन्च करें (+25 $MIMI)',
+    titleEn: 'Launch Victors Company Bot (+25 $MIMI)',
+    description: 'Victors Company टेलीग्राम बॉट ऐप शुरू करें और 25 $MIMI टोकन अर्जित करें।',
+    descriptionEn: 'Launch Victors Company Telegram Mini App & claim 25 $MIMI reward.',
+    reward: 25,
+    iconType: 'flame',
+    actionUrl: 'https://t.me/VictorsCompanybot/app?startapp=ref_44DA71ECB1',
+    requiredWaitSeconds: 15,
+    verificationType: 'external_confirmed',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'tg-atf-airdrop-bot',
+    category: 'partner',
+    subType: 'partner',
+    title: 'ATF Airdrop बॉट शुरू करें (+25 $MIMI)',
+    titleEn: 'Start ATF Airdrop Bot (+25 $MIMI)',
+    description: 'ATF Airdrop टेलीग्राम बॉट शुरू करें और 25 $MIMI बोनस प्राप्त करें।',
+    descriptionEn: 'Start ATF Airdrop Bot on Telegram and claim 25 $MIMI bonus.',
+    reward: 25,
+    iconType: 'telegram',
+    actionUrl: 'https://t.me/ATF_AIRDROP_bot?start=5155991931',
+    requiredWaitSeconds: 15,
+    verificationType: 'external_confirmed',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'tg-aura-airdrop-wallet',
+    category: 'partner',
+    subType: 'partner',
+    title: 'Aura Airdrop Wallet बॉट शुरू करें (+25 $MIMI)',
+    titleEn: 'Start Aura Airdrop Wallet Bot (+25 $MIMI)',
+    description: 'Aura Airdrop Wallet टेलीग्राम बॉट शुरू करें और 25 $MIMI रिवॉर्ड पाएं।',
+    descriptionEn: 'Launch Aura Airdrop Wallet Bot on Telegram to earn 25 $MIMI.',
+    reward: 25,
+    iconType: 'telegram',
+    actionUrl: 'https://t.me/auraAidropWalletBot?start=5155991931',
+    requiredWaitSeconds: 15,
+    verificationType: 'external_confirmed',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'tg-mininggram-bot',
+    category: 'partner',
+    subType: 'partner',
+    title: 'MiningGRAM बॉट ऐप लॉन्च करें (+25 $MIMI)',
+    titleEn: 'Launch MiningGRAM Bot App (+25 $MIMI)',
+    description: 'MiningGRAM बॉट ऐप में माइनिंग शुरू करें और 25 $MIMI क्लेम करें।',
+    descriptionEn: 'Launch MiningGRAM Bot on Telegram and claim 25 $MIMI reward.',
+    reward: 25,
+    iconType: 'flame',
+    actionUrl: 'https://t.me/MiningGRAM_Bot/mine?startapp=2D9QSU3',
+    requiredWaitSeconds: 15,
+    verificationType: 'external_confirmed',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+];
 
 export default function App() {
   const tonAddress = useTonAddress();
@@ -304,17 +417,12 @@ export default function App() {
     }
   }, []);
 
-  // PURGE ALL PREVIOUS TASKS SO TASK SECTION IS COMPLETELY EMPTY AS REQUESTED
+  // Legacy cleanup for old unused keys
   useEffect(() => {
     try {
       localStorage.removeItem('music_mimi_stats_clean_v4');
       localStorage.removeItem('music_mimi_tasks_clean_v4');
       localStorage.removeItem('music_mimi_tasks_clean_v5');
-      localStorage.removeItem('music_mimi_tasks_v9_hashmi_crypto');
-      localStorage.removeItem('music_mimi_tasks_v8_real_social');
-      localStorage.removeItem('music_mimi_tasks_v7_real_lp');
-      localStorage.removeItem('music_mimi_visited_tasks');
-      localStorage.removeItem('music_mimi_task_start_times');
       localStorage.removeItem('music_mimi_refs_clean_v4');
       localStorage.removeItem('music_mimi_lang');
     } catch {}
@@ -393,10 +501,10 @@ export default function App() {
 
   const [tasks, setTasks] = useState<AirdropTask[]>(() => {
     try {
-      const saved = localStorage.getItem('music_mimi_tasks_v9_hashmi_crypto') || localStorage.getItem('music_mimi_tasks_v8_real_social') || localStorage.getItem('music_mimi_tasks_v7_real_lp');
+      const saved = localStorage.getItem('music_mimi_tasks_v10_partners');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const { tasks: synced } = syncTasksWithDailyReset(parsed, DEFAULT_TASKS);
           return synced;
         }
@@ -447,7 +555,7 @@ export default function App() {
   }, [stats]);
 
   useEffect(() => {
-    localStorage.setItem('music_mimi_tasks_v9_hashmi_crypto', JSON.stringify(tasks));
+    localStorage.setItem('music_mimi_tasks_v10_partners', JSON.stringify(tasks));
   }, [tasks]);
 
   useEffect(() => {

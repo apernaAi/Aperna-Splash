@@ -99,14 +99,13 @@ export const TasksView: React.FC<Props> = ({
 
   const filteredTasks = tasks.filter((t) => {
     if (filter === 'all') return true;
-    if (filter === 'youtube') return t.category === 'youtube' || t.iconType === 'youtube';
-    if (filter === 'social') return t.category === 'social' || t.category === 'community' || t.iconType === 'telegram' || t.iconType === 'instagram' || t.iconType === 'twitter' || t.iconType === 'discord';
-    if (filter === 'partner') return t.category === 'partner' || t.id === 'dolicash-task-offer';
+    if (filter === 'social') return t.category === 'social' || t.category === 'community' || t.iconType === 'discord';
+    if (filter === 'partner') return t.category === 'partner' || t.subType === 'partner' || t.iconType === 'flame';
     return t.category === filter;
   });
 
-  const youtubeTasksCount = tasks.filter((t) => t.category === 'youtube' || t.iconType === 'youtube').length;
-  const socialTasksCount = tasks.filter((t) => t.category === 'social' || t.category === 'community' || t.iconType === 'telegram' || t.iconType === 'instagram').length;
+  const socialTasksCount = tasks.filter((t) => t.category === 'social' || t.category === 'community' || t.iconType === 'discord').length;
+  const partnerTasksCount = tasks.filter((t) => t.category === 'partner' || t.subType === 'partner' || t.iconType === 'flame').length;
 
   // Daily Streak 24h checks
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -361,8 +360,8 @@ export const TasksView: React.FC<Props> = ({
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {[
               { id: 'all', hi: 'सभी कार्य', en: 'All Tasks', count: tasks.length },
-              { id: 'youtube', hi: '▶️ यूट्यूब वीडियो व चैनल', en: '▶️ YouTube', count: youtubeTasksCount },
-              { id: 'social', hi: '🌐 टेलीग्राम व सोशल', en: '🌐 Telegram & Social', count: socialTasksCount },
+              { id: 'social', hi: '🌐 कम्युनिटी व सोशल', en: '🌐 Community & Social', count: socialTasksCount },
+              { id: 'partner', hi: '🤝 पार्टनर बॉट्स', en: '🤝 Partner Bots', count: partnerTasksCount },
             ].map((tab) => {
               const isActive = filter === tab.id;
               return (
@@ -637,22 +636,40 @@ export const TasksView: React.FC<Props> = ({
                   </div>
                 </div>
               </div>
-            ) : activeTaskPrompt.subType === 'telegram' ? (
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-sky-400/30 space-y-2.5">
-                <div className="flex items-center justify-between text-sky-300 text-xs font-bold">
+            ) : activeTaskPrompt.iconType === 'discord' ? (
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-indigo-500/30 space-y-2.5">
+                <div className="flex items-center justify-between text-indigo-300 text-xs font-bold">
                   <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-sky-400" />
-                    {language === 'hi' ? 'Telegram चैनल जॉइन अनिवार्य' : 'Telegram Join Required'}
+                    <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                    {language === 'hi' ? 'Discord सर्वर जॉइन निर्देश' : 'Discord Server Join'}
                   </span>
-                  <span className="text-[10px] font-mono bg-sky-500/20 px-2 py-0.5 rounded-full border border-sky-400/30">
-                    फॉलो चेक
+                  <span className="text-[10px] font-mono bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-400/30">
+                    Discord
                   </span>
                 </div>
                 
                 <p className="text-[11px] text-slate-200 leading-relaxed">
                   {language === 'hi'
-                    ? 'Telegram चैनल @Hashmi_Crypto को अनिवार्य रूप से जॉइन करें। बिना फॉलो/जॉइन किए बैक आने पर टोकन क्लेम नहीं हो पाएगा।'
-                    : 'You must genuinely join the @Hashmi_Crypto Telegram channel. Do not leave without following!'}
+                    ? 'आधिकारिक Discord सर्वर को जॉइन करें और 15 सेकंड के बाद क्लेम बटन दबाएं।'
+                    : 'Join the official Discord server and claim your tokens after 15s.'}
+                </p>
+              </div>
+            ) : activeTaskPrompt.subType === 'telegram' || activeTaskPrompt.iconType === 'telegram' ? (
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-sky-400/30 space-y-2.5">
+                <div className="flex items-center justify-between text-sky-300 text-xs font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-sky-400" />
+                    {language === 'hi' ? 'Telegram चैनल / बॉट निर्देश' : 'Telegram Channel / Bot Steps'}
+                  </span>
+                  <span className="text-[10px] font-mono bg-sky-500/20 px-2 py-0.5 rounded-full border border-sky-400/30">
+                    Telegram
+                  </span>
+                </div>
+                
+                <p className="text-[11px] text-slate-200 leading-relaxed">
+                  {language === 'hi'
+                    ? 'Telegram चैनल को जॉइन करें या बॉट को स्टार्ट करें। 15 सेकंड का टाइमर पूरा होते ही टोकन क्लेम करें।'
+                    : 'Join the Telegram channel or start the bot. Claim your tokens once the countdown completes!'}
                 </p>
               </div>
             ) : activeTaskPrompt.subType === 'instagram' ? (
