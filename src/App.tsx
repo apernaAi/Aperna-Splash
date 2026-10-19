@@ -23,8 +23,10 @@ import { AdsgramRewardModal } from './components/AdsgramRewardModal.tsx';
 import { ApernaNftPage } from './components/ApernaNftPage.tsx';
 import { ZPlusSecurityModal } from './components/ZPlusSecurityModal.tsx';
 import { RankView } from './components/RankView.tsx';
+import { RewardClaimCelebrationModal, RewardCelebrationProps } from './components/RewardClaimCelebrationModal.tsx';
+import { shortenAddress } from './utils/tonService.ts';
 import { useTonAddress } from '@tonconnect/ui-react';
-import { setMuteState, playClaimRewardSound, initBackgroundMusic, isMuted as isMutedEngine, subscribeBgmState, resumeAudioOnGesture } from './utils/audioEngine.ts';
+import { setMuteState, playClaimRewardSound, triggerHaptic, initBackgroundMusic, isMuted as isMutedEngine, subscribeBgmState, resumeAudioOnGesture } from './utils/audioEngine.ts';
 import { saveStatsWithIntegritySignature, verifyLocalStorageIntegrity, validateHumanTapVelocity } from './utils/securityEngine.ts';
 import { getTodayDateString, syncTasksWithDailyReset } from './utils/dailyTaskService.ts';
 import {
@@ -258,6 +260,7 @@ export default function App() {
   const [isAdsgramModalOpen, setIsAdsgramModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [celebrationData, setCelebrationData] = useState<{ newLevel: number; track: MusicTrack } | null>(null);
+  const [walletCelebration, setWalletCelebration] = useState<RewardCelebrationProps | null>(null);
 
   // Handle URL query parameters from Telegram buttons (e.g. ?tab=wallet or ?tab=beats)
   useEffect(() => {
@@ -585,7 +588,21 @@ export default function App() {
     saveStatsWithIntegritySignature(fresh);
     setTasks(DEFAULT_TASKS);
     setReferrals([]);
-    alert(language === 'hi' ? 'खाता नए सिरे से रीसेट हो गया (0 बैलेंस, असली टास्क)! ' : 'Reset to fresh account (0 balance, real tasks)!');
+    setWalletCelebration({
+      isOpen: true,
+      onClose: () => setWalletCelebration(null),
+      category: 'general',
+      badgeText: language === 'hi' ? '🔄 खाता रीसेट' : '🔄 ACCOUNT RESET',
+      title: language === 'hi' ? 'खाता नए सिरे से रीसेट हो गया!' : 'Account Reset Successfully!',
+      subtitle: language === 'hi'
+        ? 'आपका खाता 0 बैलेंस और फ्रेश स्टेट के साथ सफलतापूर्वक रीसेट हो गया है।'
+        : 'Your account has been refreshed with 0 balance and pristine state.',
+      items: [
+        { label: language === 'hi' ? 'बैलेंस' : 'Balance', value: '0.00 $MIMI' },
+        { label: language === 'hi' ? 'लेवल' : 'Level', value: 'Level 1' },
+      ],
+      language,
+    });
   };
 
   // Rewarded Adsgram Ad Completion handler
@@ -658,6 +675,17 @@ export default function App() {
 
   // Wallet Bind: Real-Time Cross-Device Qualification & +100 $MIMI Award
   const handleConnectWallet = (address: string, provider: string) => {
+    // If empty address was passed (disconnect action)
+    if (!address) {
+      setStats((prev) => ({
+        ...prev,
+        walletAddress: null,
+        walletProvider: null,
+        isWalletVerified: false,
+      }));
+      return;
+    }
+
     lookupUserByWalletOrTelegram({ walletAddress: address }).then((existing) => {
       if (existing && existing.userId && existing.userId !== stats.userId) {
         console.log(`[WALLET RESTORE] Restoring account ${existing.userId} for wallet ${address}`);
@@ -693,6 +721,30 @@ export default function App() {
       isWalletVerified: true,
       walletAgeDays: prev.walletAgeDays || 14,
     }));
+
+    // Trigger Rich Web3 Celebration Modal
+    playClaimRewardSound();
+    triggerHaptic('heavy');
+    setWalletCelebration({
+      isOpen: true,
+      onClose: () => setWalletCelebration(null),
+      category: 'wallet',
+      badgeText: language === 'hi' ? '🛡️ TON वॉलेट सफलतापूर्वक जुड़ा' : '🛡️ TON WALLET CONNECTED',
+      title: language === 'hi' ? 'TON वॉलेट सत्यापित एवं कनेक्टेड!' : 'TON Wallet Connected!',
+      subtitle: language === 'hi'
+        ? 'आपका TON वॉलेट सफलतापूर्वक लिंक हो गया है। Mimi Making 8-घंटे लूप क्राफ्टिंग अब अनलॉक है!'
+        : 'Your TON wallet is now safely connected. Mimi Making 8-hour loop craft is now fully unlocked!',
+      amount: 100,
+      tokenSymbol: '$MIMI',
+      walletAddress: address,
+      items: [
+        { label: language === 'hi' ? 'वॉलेट पता' : 'Wallet Address', value: shortenAddress(address, 5), isHighlight: true },
+        { label: language === 'hi' ? 'Mimi Making क्राफ्टिंग' : 'Mimi Making Craft', value: language === 'hi' ? 'अनलॉक (सक्रिय)' : 'Unlocked (Active)' },
+        { label: language === 'hi' ? 'प्रोवाइडर' : 'Provider', value: provider || 'Tonkeeper / @wallet' },
+      ],
+      language,
+    });
+
     const walletTask = tasks.find((t) => t.id === 'connect-ton-wallet');
     if (walletTask && !walletTask.isCompleted) {
       handleCompleteTask('connect-ton-wallet', walletTask.reward);
@@ -903,9 +955,15 @@ export default function App() {
         isOpen={isWalletModalOpen}
         onClose={() => setIsWalletModalOpen(false)}
         onConnect={handleConnectWallet}
+        onDisconnect={() => handleConnectWallet('', '')}
         currentAddress={stats.walletAddress}
         language={language}
       />
+
+      {/* Wallet / Generic Action Celebration Modal */}
+      {walletCelebration && (
+        <RewardClaimCelebrationModal {...walletCelebration} />
+      )}
 
       {/* Dedicated Claim $MIMI Workflow Modal */}
       <ClaimMimiModal

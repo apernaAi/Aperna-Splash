@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronRight, Radio, Disc3, Sparkles, Headphones, Volume2, Sliders, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, Radio, Disc3, Sparkles, Headphones, Volume2, Sliders, Zap, AlertCircle } from 'lucide-react';
 import { UserStats, Language } from '../types/airdrop.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
 import { playClaimRewardSound, playTapSound } from '../utils/audioEngine.ts';
@@ -17,6 +17,7 @@ export const MinerUpgradesView: React.FC<Props> = ({
   language,
   onOpenArcade,
 }) => {
+  const [errorMsg, setErrorMsg] = useState('');
   const hpLevel = stats.studioUpgrades?.headphonesLevel || 1;
   const ttLevel = stats.studioUpgrades?.turntableLevel || 1;
   const ampLevel = stats.studioUpgrades?.amplifierLevel || 1;
@@ -62,9 +63,11 @@ export const MinerUpgradesView: React.FC<Props> = ({
 
   const handleUpgrade = (id: string, cost: number) => {
     if (stats.balance < cost) {
-      alert(language === 'hi' ? 'पर्याप्त  बैलेंस नहीं है! बीट्स या टास्क से टोकन अर्जित करें।' : 'Not enough  tokens! Earn tokens from tasks or beats.');
+      setErrorMsg(language === 'hi' ? 'पर्याप्त $MIMI बैलेंस नहीं है! बीट्स या टास्क से टोकन अर्जित करें।' : 'Not enough $MIMI tokens! Earn tokens from tasks or beats.');
+      setTimeout(() => setErrorMsg(''), 4000);
       return;
     }
+    setErrorMsg('');
 
     playClaimRewardSound();
     const newBalance = Number((stats.balance - cost).toFixed(2));
@@ -134,6 +137,14 @@ export const MinerUpgradesView: React.FC<Props> = ({
           />
         </div>
       </div>
+
+      {/* Insufficient Balance Notice */}
+      {errorMsg && (
+        <div className="w-full p-3 rounded-2xl bg-rose-950/80 border border-rose-400/50 text-rose-200 text-xs font-mono flex items-center gap-2 animate-fadeIn shadow-[0_0_15px_rgba(244,63,94,0.3)]">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       {/* 1.5 Active Studio Perks Dashboard */}
       <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">

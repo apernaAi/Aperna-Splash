@@ -31,6 +31,7 @@ import {
 } from '../utils/referralCloudService.ts';
 import { TelegramIcon } from './TelegramIcon.tsx';
 import { ProfileAvatarModal } from './ProfileAvatarModal.tsx';
+import { RewardClaimCelebrationModal, RewardCelebrationProps } from './RewardClaimCelebrationModal.tsx';
 
 interface Props {
   stats: UserStats;
@@ -70,6 +71,7 @@ export const FrensView: React.FC<Props> = ({
   // Claim loaders
   const [isClaimingBonus, setIsClaimingBonus] = useState(false);
   const [isClaimingCommission, setIsClaimingCommission] = useState(false);
+  const [celebrationReward, setCelebrationReward] = useState<RewardCelebrationProps | null>(null);
 
   // Strictly REAL recruits from Firestore — absolutely NO fake/mock data
   const realRecruitsCount = referrals.length;
@@ -171,11 +173,25 @@ export const FrensView: React.FC<Props> = ({
         recruitsCount: realRecruitsCount,
       });
 
-      alert(
-        language === 'hi'
-          ? `बधाई! आपके असली रेफरल्स का +${res.amountAwarded} $MIMI टोकन बोनस आपके बैलेंस में क्रेडिट हो गया है!`
-          : `Congratulations! +${res.amountAwarded} $MIMI referral bonus credited to your balance!`
-      );
+      setCelebrationReward({
+        isOpen: true,
+        onClose: () => setCelebrationReward(null),
+        category: 'referral',
+        badgeText: language === 'hi' ? '🎁 रिक्रूट रिवॉर्ड प्राप्त' : '🎁 RECRUIT REWARD CLAIMED',
+        title: language === 'hi' ? 'रेफरल बोनस सफलतापूर्वक क्लेम!' : 'Referral Bonus Claimed!',
+        subtitle: language === 'hi'
+          ? `बधाई! आपके असली रेफरल्स का +${res.amountAwarded} $MIMI बोनस तुरंत आपके इन-ऐप बैलेंस में जोड़ दिया गया है!`
+          : `Congratulations! +${res.amountAwarded} $MIMI referral bonus has been successfully credited to your balance!`,
+        amount: res.amountAwarded,
+        tokenSymbol: '$MIMI',
+        usdValue: `$${(res.amountAwarded * (stats.usdConversionRate || 0.005)).toFixed(2)} USD`,
+        items: [
+          { label: language === 'hi' ? 'सक्रिय रिक्रूट्स' : 'Active Recruits', value: `${realRecruitsCount} Frens`, isHighlight: true },
+          { label: language === 'hi' ? 'नया कुल बैलेंस' : 'New Total Balance', value: `${newTotal} $MIMI` },
+          { label: language === 'hi' ? 'सत्यापन स्थिति' : 'Verification', value: language === 'hi' ? '✓ TON लेजर सत्यापित' : '✓ Verified on TON' },
+        ],
+        language,
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -208,11 +224,25 @@ export const FrensView: React.FC<Props> = ({
         recruitsCount: realRecruitsCount,
       });
 
-      alert(
-        language === 'hi'
-          ? `शानदार! आज का 10% दैनिक कमीशन (+${res.commissionAwarded} $MIMI) आपके बैलेंस में जुड़ गया है!`
-          : `Success! Today's 10% squad commission (+${res.commissionAwarded} $MIMI) credited to your balance!`
-      );
+      setCelebrationReward({
+        isOpen: true,
+        onClose: () => setCelebrationReward(null),
+        category: 'commission',
+        badgeText: language === 'hi' ? '⚡ 10% दैनिक रॉयल्टी प्राप्त' : '⚡ 10% SQUAD ROYALTY CLAIMED',
+        title: language === 'hi' ? '10% स्क्वाड रॉयल्टी प्राप्त!' : '10% Squad Royalty Claimed!',
+        subtitle: language === 'hi'
+          ? `शानदार! आज का 10% दैनिक कमीशन (+${res.commissionAwarded} $MIMI) आपके इन-ऐप बैलेंस में जुड़ गया है!`
+          : `Success! Today's 10% squad commission (+${res.commissionAwarded} $MIMI) is credited to your balance!`,
+        amount: res.commissionAwarded,
+        tokenSymbol: '$MIMI',
+        usdValue: `$${(res.commissionAwarded * (stats.usdConversionRate || 0.005)).toFixed(2)} USD`,
+        items: [
+          { label: language === 'hi' ? 'सक्रिय प्रोड्यूसर्स' : 'Active Producers', value: `${realRecruitsCount} Members`, isHighlight: true },
+          { label: language === 'hi' ? 'रॉयल्टी दर' : 'Royalty Rate', value: '10% Daily Yield' },
+          { label: language === 'hi' ? 'नया कुल बैलेंस' : 'New Total Balance', value: `${newTotal} $MIMI` },
+        ],
+        language,
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -232,6 +262,7 @@ export const FrensView: React.FC<Props> = ({
         triggerHaptic('heavy');
         const newInApp = Number(((stats.inAppBalance || 0) + res.bonus).toFixed(2));
         const newTotal = Number(((stats.balance || 0) + res.bonus).toFixed(2));
+
         onUpdateStats({
           ...stats,
           balance: newTotal,
@@ -239,9 +270,28 @@ export const FrensView: React.FC<Props> = ({
           referrerId: manualCode.trim().replace(/^ref_/, ''),
         });
         setManualCode('');
+
+        setCelebrationReward({
+          isOpen: true,
+          onClose: () => setCelebrationReward(null),
+          category: 'referral',
+          badgeText: language === 'hi' ? '🤝 स्क्वाड बाइंडिंग बोनस' : '🤝 SQUAD BIND BONUS',
+          title: language === 'hi' ? 'रेफरल कोड लिंक हो गया!' : 'Referral Linked Successfully!',
+          subtitle: language === 'hi'
+            ? `आप अपने दोस्त के स्क्वाड में जुड़ गए हैं और +${res.bonus} $MIMI बोनस प्राप्त हुआ!`
+            : `You joined your friend's squad and earned +${res.bonus} $MIMI bonus!`,
+          amount: res.bonus,
+          tokenSymbol: '$MIMI',
+          items: [
+            { label: language === 'hi' ? 'इन्वाइटर' : 'Inviter', value: manualCode.trim(), isHighlight: true },
+            { label: language === 'hi' ? 'नया कुल बैलेंस' : 'New Total Balance', value: `${newTotal} $MIMI` },
+          ],
+          language,
+        });
+      } else {
+        setBindResult({ message: language === 'hi' ? res.messageHi : res.messageEn, success: res.success });
+        setTimeout(() => setBindResult(null), 5000);
       }
-      setBindResult({ message: language === 'hi' ? res.messageHi : res.messageEn, success: res.success });
-      setTimeout(() => setBindResult(null), 5000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -959,6 +1009,11 @@ export const FrensView: React.FC<Props> = ({
           });
         }}
       />
+
+      {/* 5. Web3 Reward & Claim Celebration Modal */}
+      {celebrationReward && (
+        <RewardClaimCelebrationModal {...celebrationReward} />
+      )}
     </div>
   );
 };

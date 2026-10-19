@@ -44,6 +44,7 @@ export const AirdropWalletView: React.FC<Props> = ({
 }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
+  const [withdrawNotice, setWithdrawNotice] = useState<string | null>(null);
   const [realTonBalance, setRealTonBalance] = useState<number>(0);
   const [isLoadingTonBalance, setIsLoadingTonBalance] = useState(false);
 
@@ -101,9 +102,11 @@ export const AirdropWalletView: React.FC<Props> = ({
       return;
     }
     if (stats.inAppBalance <= 0) {
-      alert(language === 'hi' ? 'कोई अनक्लेम्ड $MIMI बैलेंस उपलब्ध नहीं है!' : 'No $MIMI balance available to claim!');
+      setWithdrawNotice(language === 'hi' ? 'कोई अनक्लेम्ड $MIMI बैलेंस उपलब्ध नहीं है!' : 'No $MIMI balance available to claim!');
+      setTimeout(() => setWithdrawNotice(null), 4000);
       return;
     }
+    setWithdrawNotice(null);
     playClaimRewardSound();
     const fakeTx = `ton_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const claimAmt = stats.inAppBalance;
@@ -299,6 +302,14 @@ export const AirdropWalletView: React.FC<Props> = ({
             : 'All mined $MIMI tokens are verified & safe. Upon official DEX listing, you can claim them directly into your connected TON wallet.'}
         </p>
       </div>
+
+      {/* Insufficient balance notice */}
+      {withdrawNotice && (
+        <div className="w-full p-3.5 rounded-2xl bg-amber-950/70 border border-amber-400/50 text-amber-200 text-xs font-mono flex items-center gap-2 animate-fadeIn">
+          <span>⚠️</span>
+          <span>{withdrawNotice}</span>
+        </div>
+      )}
 
       {/* Quick Action: Transfer / Claim notification */}
       {withdrawSuccess && (

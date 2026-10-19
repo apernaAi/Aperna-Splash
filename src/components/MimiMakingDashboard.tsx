@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Music, Disc3, Sparkles, Clock, CheckCircle2, FastForward, Play, Layers, ChevronRight, Trophy, Lock, ShieldCheck, Wallet, Coins, ArrowUpRight } from 'lucide-react';
 import { UserStats, Language, getRequiredLoopsForLevel, MUSIC_TRACKS_DATABASE } from '../types/airdrop.ts';
-import { TON_CONFIG } from '../utils/tonService.ts';
+import { TON_CONFIG, shortenAddress } from '../utils/tonService.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
+import { useTonAddress } from '@tonconnect/ui-react';
 import { playTurntableStartSound, playClaimRewardSound, playLoopMergeSound, playTapSound, triggerHaptic } from '../utils/audioEngine.ts';
 import { TelegramIcon } from './TelegramIcon.tsx';
 
@@ -29,6 +30,7 @@ export const MimiMakingDashboard: React.FC<Props> = ({
 }) => {
   const [now, setNow] = useState(Date.now());
   const [isMerging, setIsMerging] = useState(false);
+  const tonAddressFromConnect = useTonAddress();
 
   // 1-second interval to update live countdown timer
   useEffect(() => {
@@ -36,7 +38,8 @@ export const MimiMakingDashboard: React.FC<Props> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const isWalletConnected = Boolean(stats.walletAddress);
+  const effectiveWalletAddress = stats.walletAddress || tonAddressFromConnect || null;
+  const isWalletConnected = Boolean(effectiveWalletAddress);
 
   const requiredLoops = getRequiredLoopsForLevel(stats.level);
   const currentLoops = stats.currentLevelLoops || 0;
@@ -301,7 +304,21 @@ export const MimiMakingDashboard: React.FC<Props> = ({
         </div>
 
         {/* 4. PRIMARY ACTION BUTTON: Positioned right below the central icon */}
-        <div className="w-full max-w-xs mt-5 flex flex-col items-center gap-2.5">
+        <div className="w-full max-w-xs mt-4 flex flex-col items-center gap-2">
+          {/* Active Connected Wallet Badge */}
+          {isWalletConnected && effectiveWalletAddress && (
+            <button
+              onClick={onOpenWallet}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-[10px] sm:text-xs font-mono font-bold text-emerald-300 hover:bg-emerald-500/25 transition-all cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.2)] mb-1"
+              title="Manage TON Wallet"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{language === 'hi' ? 'TON वॉलेट:' : 'TON Wallet:'}</span>
+              <span className="text-white">{shortenAddress(effectiveWalletAddress, 4)}</span>
+              <span className="text-cyan-300 text-[9px] underline">({language === 'hi' ? 'बदलें' : 'Manage'})</span>
+            </button>
+          )}
+
           {/* STATE LOCK: If wallet is NOT connected, button is disabled and prompts wallet connect */}
           {!isWalletConnected ? (
             <button

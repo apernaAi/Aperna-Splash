@@ -48,6 +48,7 @@ export const ClaimMimiModal: React.FC<Props> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showProofDetails, setShowProofDetails] = useState(false);
+  const [inlineNotice, setInlineNotice] = useState<string | null>(null);
 
   const isWalletConnected = Boolean(stats.walletAddress);
   const todayDateStr = new Date().toISOString().slice(0, 10);
@@ -70,13 +71,15 @@ export const ClaimMimiModal: React.FC<Props> = ({
       return;
     }
     if (alreadyClaimedToday) {
-      alert(
+      setInlineNotice(
         language === 'hi'
           ? 'आप आज का 50 $MIMI क्लेम पहले ही कर चुके हैं! अगला 50 कॉइन क्लेम कल उपलब्ध होगा।'
           : 'You have already claimed today 50 $MIMI coins! Next claim available tomorrow.'
       );
+      setTimeout(() => setInlineNotice(null), 4000);
       return;
     }
+    setInlineNotice(null);
 
     playTapSound();
     setIsSubmitting(true);
@@ -279,6 +282,14 @@ export const ClaimMimiModal: React.FC<Props> = ({
                 </a>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Inline Notice */}
+        {inlineNotice && (
+          <div className="p-3 rounded-2xl bg-amber-950/70 border border-amber-400/50 text-amber-200 text-xs font-mono flex items-center gap-2 animate-fadeIn">
+            <span>⚠️</span>
+            <span>{inlineNotice}</span>
           </div>
         )}
 
