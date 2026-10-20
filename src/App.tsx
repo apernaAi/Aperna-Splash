@@ -24,6 +24,7 @@ import { ApernaNftPage } from './components/ApernaNftPage.tsx';
 import { ZPlusSecurityModal } from './components/ZPlusSecurityModal.tsx';
 import { RankView } from './components/RankView.tsx';
 import { RewardClaimCelebrationModal, RewardCelebrationProps } from './components/RewardClaimCelebrationModal.tsx';
+import { MATH_QUIZ_TASKS } from './utils/mathTasksData.ts';
 import { shortenAddress } from './utils/tonService.ts';
 import { useTonAddress } from '@tonconnect/ui-react';
 import { setMuteState, playClaimRewardSound, triggerHaptic, initBackgroundMusic, isMuted as isMutedEngine, subscribeBgmState, resumeAudioOnGesture } from './utils/audioEngine.ts';
@@ -235,6 +236,7 @@ function createInitialStats(): UserStats {
 }
 
 const DEFAULT_TASKS: AirdropTask[] = [
+  ...MATH_QUIZ_TASKS,
   {
     id: 'tg-musicmimi-community',
     category: 'community',
@@ -501,7 +503,7 @@ export default function App() {
 
   const [tasks, setTasks] = useState<AirdropTask[]>(() => {
     try {
-      const saved = localStorage.getItem('music_mimi_tasks_v10_partners');
+      const saved = localStorage.getItem('music_mimi_tasks_v12_math_quiz_30') || localStorage.getItem('music_mimi_tasks_v11_math_quiz') || localStorage.getItem('music_mimi_tasks_v10_partners');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -555,7 +557,7 @@ export default function App() {
   }, [stats]);
 
   useEffect(() => {
-    localStorage.setItem('music_mimi_tasks_v10_partners', JSON.stringify(tasks));
+    localStorage.setItem('music_mimi_tasks_v12_math_quiz_30', JSON.stringify(tasks));
   }, [tasks]);
 
   useEffect(() => {
@@ -764,6 +766,22 @@ export default function App() {
     creditReferralCommission(stats.userId, reward, 'Quests').catch(console.error);
   };
 
+  // Math Quiz Failed Attempt Handler (1 attempt per task per day)
+  const handleFailMathTask = (taskId: string) => {
+    const todayStr = getTodayDateString();
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              isFailedToday: true,
+              lastFailedDate: todayStr,
+            }
+          : t
+      )
+    );
+  };
+
   // Daily Streak Claim
   const handleClaimDailyStreak = (day: number, reward: number) => {
     playClaimRewardSound();
@@ -968,6 +986,7 @@ export default function App() {
           <TasksView
             tasks={tasks}
             onCompleteTask={handleCompleteTask}
+            onFailTask={handleFailMathTask}
             stats={stats}
             onClaimDailyStreak={handleClaimDailyStreak}
             onOpenArcade={() => setIsArcadeModalOpen(true)}

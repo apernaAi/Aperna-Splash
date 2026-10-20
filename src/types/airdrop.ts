@@ -120,15 +120,22 @@ export interface UserStats {
   };
 }
 
+export interface MathQuizData {
+  question: string;
+  options: number[];
+  correctAnswer: number;
+  operation: '+' | '-' | '×' | '÷';
+}
+
 export interface AirdropTask {
   id: string;
-  category: 'all' | 'adsgram' | 'liquidity' | 'social' | 'ton' | 'community' | 'partner' | 'youtube';
+  category: 'all' | 'adsgram' | 'liquidity' | 'social' | 'ton' | 'community' | 'partner' | 'youtube' | 'math';
   title: string;
   titleEn: string;
   description: string;
   descriptionEn: string;
   reward: number;
-  iconType: 'adsgram' | 'liquidity' | 'telegram' | 'twitter' | 'wallet' | 'music' | 'users' | 'flame' | 'instagram' | 'discord' | 'youtube';
+  iconType: 'adsgram' | 'liquidity' | 'telegram' | 'twitter' | 'wallet' | 'music' | 'users' | 'flame' | 'instagram' | 'discord' | 'youtube' | 'math';
   actionUrl?: string;
   isCompleted: boolean;
   requiresWallet?: boolean;
@@ -137,10 +144,13 @@ export interface AirdropTask {
   verificationType?: 'ad_watched' | 'wallet_connected' | 'external_confirmed' | 'auto';
   isStarted?: boolean;
   requiredWaitSeconds?: number;
-  subType?: 'subscribe' | 'video' | 'telegram' | 'instagram' | 'partner' | 'other';
+  subType?: 'subscribe' | 'video' | 'telegram' | 'instagram' | 'partner' | 'math' | 'other';
   lastCompletedDate?: string; // 'YYYY-MM-DD' for daily reset
   lastCompletedTimestamp?: number; // ms timestamp
   isDailyRepeatable?: boolean; // defaults to true for daily tasks
+  quizData?: MathQuizData;
+  isFailedToday?: boolean;
+  lastFailedDate?: string;
 }
 
 export interface RealReferral {

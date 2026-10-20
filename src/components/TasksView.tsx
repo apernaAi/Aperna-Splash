@@ -27,17 +27,20 @@ import {
   ThumbsUp,
   MessageSquare,
   Bell,
-  Play
+  Play,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { AirdropTask, UserStats, Language } from '../types/airdrop.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
 import { shortenAddress } from '../utils/tonService.ts';
-import { playClaimRewardSound, playTapSound } from '../utils/audioEngine.ts';
+import { playClaimRewardSound, playTapSound, triggerHaptic } from '../utils/audioEngine.ts';
 import { getTimeUntilNextReset, getTodayDateString } from '../utils/dailyTaskService.ts';
 
 interface Props {
   tasks: AirdropTask[];
   onCompleteTask: (taskId: string, reward: number) => void;
+  onFailTask?: (taskId: string) => void;
   stats: UserStats;
   onClaimDailyStreak: (day: number, reward: number) => void;
   onOpenArcade: () => void;
@@ -58,14 +61,19 @@ const DAILY_REWARDS = [
 export const TasksView: React.FC<Props> = ({
   tasks,
   onCompleteTask,
+  onFailTask,
   stats,
   onClaimDailyStreak,
   onOpenArcade,
   onOpenWallet,
   language,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'youtube' | 'social' | 'partner'>('all');
+  const [filter, setFilter] = useState<'all' | 'math' | 'social' | 'partner'>('all');
   const [verifyingTaskId, setVerifyingTaskId] = useState<string | null>(null);
+  const [activeMathTask, setActiveMathTask] = useState<AirdropTask | null>(null);
+  const [selectedMathOption, setSelectedMathOption] = useState<number | null>(null);
+  const [mathQuizResult, setMathQuizResult] = useState<'idle' | 'correct' | 'wrong'>('idle');
+  const [inlineTaskAnswer, setInlineTaskAnswer] = useState<Record<string, { option: number; isCorrect: boolean }>>({});
   
   const [visitedTaskIds, setVisitedTaskIds] = useState<Record<string, boolean>>(() => {
     try {
@@ -99,11 +107,13 @@ export const TasksView: React.FC<Props> = ({
 
   const filteredTasks = tasks.filter((t) => {
     if (filter === 'all') return true;
+    if (filter === 'math') return t.category === 'math' || t.subType === 'math';
     if (filter === 'social') return t.category === 'social' || t.category === 'community' || t.iconType === 'discord';
     if (filter === 'partner') return t.category === 'partner' || t.subType === 'partner' || t.iconType === 'flame';
     return t.category === filter;
   });
 
+  const mathTasksCount = tasks.filter((t) => t.category === 'math' || t.subType === 'math').length;
   const socialTasksCount = tasks.filter((t) => t.category === 'social' || t.category === 'community' || t.iconType === 'discord').length;
   const partnerTasksCount = tasks.filter((t) => t.category === 'partner' || t.subType === 'partner' || t.iconType === 'flame').length;
 
@@ -126,10 +136,62 @@ export const TasksView: React.FC<Props> = ({
     }
   };
 
+  const handleSelectMathOption = (option: number) => {
+    if (!activeMathTask || !activeMathTask.quizData || selectedMathOption !== null || activeMathTask.isFailedToday || activeMathTask.isCompleted) return;
+
+    setSelectedMathOption(option);
+    const isCorrect = option === activeMathTask.quizData.correctAnswer;
+
+    if (isCorrect) {
+      setMathQuizResult('correct');
+      playClaimRewardSound();
+      triggerHaptic('heavy');
+      onCompleteTask(activeMathTask.id, activeMathTask.reward || 15);
+    } else {
+      setMathQuizResult('wrong');
+      triggerHaptic('medium');
+      if (onFailTask) {
+        onFailTask(activeMathTask.id);
+      }
+    }
+  };
+
+  const handleInlineMathAnswer = (task: AirdropTask, option: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!task.quizData || task.isFailedToday || task.isCompleted || inlineTaskAnswer[task.id]) return;
+
+    const isCorrect = option === task.quizData.correctAnswer;
+    setInlineTaskAnswer((prev) => ({
+      ...prev,
+      [task.id]: { option, isCorrect },
+    }));
+
+    if (isCorrect) {
+      playClaimRewardSound();
+      triggerHaptic('heavy');
+      onCompleteTask(task.id, task.reward || 15);
+    } else {
+      triggerHaptic('medium');
+      if (onFailTask) {
+        onFailTask(task.id);
+      }
+    }
+  };
+
   const handleTaskClick = (task: AirdropTask) => {
-    if (task.isCompleted || verifyingTaskId) return;
+    if (verifyingTaskId) return;
 
     playTapSound();
+
+    // Math Quiz tasks open the interactive quiz challenge modal
+    if (task.category === 'math' || task.quizData) {
+      setActiveMathTask(task);
+      setSelectedMathOption(null);
+      setMathQuizResult('idle');
+      return;
+    }
+
+    if (task.isCompleted) return;
 
     // 1. If Wallet required -> MUST have connected wallet
     if (task.requiresWallet && !stats.walletAddress) {
@@ -360,6 +422,7 @@ export const TasksView: React.FC<Props> = ({
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {[
               { id: 'all', hi: 'सभी कार्य', en: 'All Tasks', count: tasks.length },
+              { id: 'math', hi: '🧮 गणित क्विज', en: '🧮 Math Quiz', count: mathTasksCount },
               { id: 'social', hi: '🌐 कम्युनिटी व सोशल', en: '🌐 Community & Social', count: socialTasksCount },
               { id: 'partner', hi: '🤝 पार्टनर बॉट्स', en: '🤝 Partner Bots', count: partnerTasksCount },
             ].map((tab) => {
@@ -399,6 +462,152 @@ export const TasksView: React.FC<Props> = ({
             const remainingSec = getTaskRemainingSeconds(task);
             const isTaskTimerDone = remainingSec === 0;
 
+            // Math Quiz Task: Interactive card with question and 4 direct option buttons
+            if (task.category === 'math' && task.quizData) {
+              const inlineAns = inlineTaskAnswer[task.id];
+              const isLocked = Boolean(task.isFailedToday || (inlineAns && inlineAns.isCorrect === false));
+              const isDone = Boolean(task.isCompleted || (inlineAns && inlineAns.isCorrect === true));
+              const hasAttempted = isDone || isLocked || inlineAns !== undefined;
+
+              return (
+                <div
+                  key={task.id}
+                  className={`w-full rounded-2xl p-4 glass-panel-blue transition-all flex flex-col gap-3 border ${
+                    isDone
+                      ? 'border-emerald-500/30 bg-[#06193d]/60'
+                      : isLocked
+                      ? 'border-rose-500/30 bg-[#1f0e1a]/60'
+                      : 'border-violet-500/30 hover:border-violet-400/60'
+                  }`}
+                >
+                  {/* Top Header Row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-[0_0_12px_rgba(139,92,246,0.5)] border border-violet-400/40 font-mono font-black text-base flex-shrink-0">
+                        {task.quizData.operation}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-400/30 font-bold">
+                            {task.quizData.operation === '+' ? (language === 'hi' ? 'जोड़ (+)' : 'Addition (+)')
+                              : task.quizData.operation === '-' ? (language === 'hi' ? 'घटाव (-)' : 'Subtraction (-)')
+                              : task.quizData.operation === '×' ? (language === 'hi' ? 'गुणा (×)' : 'Multiply (×)')
+                              : (language === 'hi' ? 'भाग (÷)' : 'Division (÷)')}
+                          </span>
+                          <span className="text-xs font-black text-amber-300 font-mono flex items-center gap-1">
+                            <img src={ASSETS.mimiTokenCoin} alt="$MIMI" className="w-3.5 h-3.5 rounded-full object-cover" />
+                            +{task.reward} $MIMI
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-black text-white truncate mt-0.5">
+                          {language === 'hi' ? task.title : task.titleEn}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="flex-shrink-0">
+                      {isDone ? (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black border border-emerald-400/40 shadow-sm">
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{language === 'hi' ? 'आज पूरा हुआ' : 'Done Today'}</span>
+                        </div>
+                      ) : isLocked ? (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-400/40">
+                          <X className="w-3.5 h-3.5 text-rose-400" />
+                          <span>{language === 'hi' ? 'कल फिर प्रयास' : 'Try Tomorrow'}</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleTaskClick(task)}
+                          className="px-2.5 py-1 rounded-full bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 text-[11px] font-bold border border-violet-400/30 flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Sparkles className="w-3 h-3 text-violet-300" />
+                          <span>{language === 'hi' ? 'बड़ा देखें' : 'Focus'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Math Question Highlight Box */}
+                  <div className="w-full py-2.5 px-3 rounded-xl bg-black/40 border border-violet-500/20 flex items-center justify-between">
+                    <span className="text-xs text-violet-200/90 font-medium">
+                      {language === 'hi' ? 'प्रश्न हल करें (1 मौका आज):' : 'Solve (1 chance today):'}
+                    </span>
+                    <span className="text-lg font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-200 via-white to-cyan-200 tracking-wider">
+                      {task.quizData.question}
+                    </span>
+                  </div>
+
+                  {/* 4 Options Grid (A, B, C, D) & Direct Results */}
+                  {isDone ? (
+                    <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-400/40 text-center space-y-1">
+                      <div className="flex items-center justify-center gap-1.5 text-emerald-300 font-black text-xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>{language === 'hi' ? '🎉 बधाई हो! बिल्कुल सही उत्तर! (+15 $MIMI मिले)' : '🎉 Congratulations! Correct! (+15 $MIMI credited)'}</span>
+                      </div>
+                      <p className="text-[10px] text-emerald-200/80">
+                        {language === 'hi' ? 'कल रात 12:00 बजे रीसेट पर दोबारा क्लेम करें 🔁' : 'Claim again tomorrow after midnight reset 🔁'}
+                      </p>
+                    </div>
+                  ) : isLocked ? (
+                    <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-400/40 text-center space-y-1">
+                      <div className="flex items-center justify-center gap-1.5 text-rose-300 font-black text-xs">
+                        <AlertCircle className="w-4 h-4 text-rose-400" />
+                        <span>{language === 'hi' ? '❌ गलत उत्तर! कल फिर प्रयास करें' : '❌ Wrong Answer! Try again tomorrow'}</span>
+                      </div>
+                      <p className="text-[10px] text-rose-200/80">
+                        {language === 'hi'
+                          ? `सही उत्तर ${task.quizData.correctAnswer} था। रीसेट में शेष: ⏳ ${timeUntilReset.formatted}`
+                          : `Correct answer was ${task.quizData.correctAnswer}. Next reset: ⏳ ${timeUntilReset.formatted}`}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {task.quizData.options.map((option, idx) => {
+                        const optionLetter = ['A', 'B', 'C', 'D'][idx];
+                        const isOptionSelected = inlineAns?.option === option;
+                        const isOptionCorrect = option === task.quizData!.correctAnswer;
+
+                        let btnClass = 'bg-[#0b1c3c] hover:bg-[#122a57] border border-cyan-500/30 text-white active:scale-95';
+                        if (inlineAns) {
+                          if (isOptionSelected) {
+                            btnClass = isOptionCorrect
+                              ? 'bg-emerald-500 text-slate-950 font-black border-2 border-emerald-300'
+                              : 'bg-rose-600 text-white font-black border-2 border-rose-300';
+                          } else if (isOptionCorrect && inlineAns.isCorrect === false) {
+                            btnClass = 'bg-emerald-950/80 border-2 border-emerald-400 text-emerald-200 font-bold';
+                          } else {
+                            btnClass = 'bg-slate-900/50 border border-slate-700/40 text-slate-500 opacity-50';
+                          }
+                        }
+
+                        return (
+                          <button
+                            key={idx}
+                            disabled={hasAttempted}
+                            onClick={(e) => handleInlineMathAnswer(task, option, e)}
+                            className={`p-2.5 rounded-xl flex items-center justify-between gap-1.5 font-mono text-sm transition-all duration-150 cursor-pointer ${btnClass}`}
+                          >
+                            <span className="w-5 h-5 rounded-md bg-black/40 flex items-center justify-center text-[10px] font-sans font-black opacity-80 shrink-0">
+                              {optionLetter}
+                            </span>
+                            <span className="font-extrabold text-base flex-1 text-center">
+                              {option}
+                            </span>
+                            <span className="w-4 flex justify-end shrink-0">
+                              {isOptionSelected && isOptionCorrect && <Check className="w-3.5 h-3.5 text-slate-950 stroke-[3]" />}
+                              {isOptionSelected && !isOptionCorrect && <X className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <div
                 key={task.id}
@@ -416,6 +625,11 @@ export const TasksView: React.FC<Props> = ({
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
                         <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                       </svg>
+                    </div>
+                  )}
+                  {task.iconType === 'math' && (
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-[0_0_12px_rgba(139,92,246,0.6)] border border-violet-400/40 font-mono font-black text-sm">
+                      {task.quizData?.operation || '🧮'}
                     </div>
                   )}
                   {task.iconType === 'flame' && (
@@ -514,6 +728,21 @@ export const TasksView: React.FC<Props> = ({
                         {language === 'hi' ? 'कल फिर क्लेम करें 🔁' : 'Claim again tomorrow 🔁'}
                       </span>
                     </div>
+                  ) : task.isFailedToday ? (
+                    <div className="flex flex-col items-end flex-shrink-0">
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-400/40">
+                        <X className="w-3.5 h-3.5 text-rose-400" />
+                        <span>{language === 'hi' ? 'कल फिर प्रयास' : 'Try Tomorrow'}</span>
+                      </div>
+                      <span className="text-[9px] text-rose-300/70 font-mono mt-0.5 whitespace-nowrap">
+                        {language === 'hi' ? 'गलत उत्तर 🔒' : 'Locked Today 🔒'}
+                      </span>
+                    </div>
+                  ) : task.category === 'math' ? (
+                    <button className="px-3.5 py-1.5 rounded-full text-xs font-black shadow-sm active:scale-95 transition-all cursor-pointer bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 text-slate-950 hover:brightness-110 shadow-[0_0_12px_rgba(167,139,250,0.5)] flex items-center gap-1 font-bold">
+                      <span>{language === 'hi' ? 'हल करें' : 'Solve'}</span>
+                      <span className="font-mono text-[10px] bg-slate-950/20 px-1 rounded">+15</span>
+                    </button>
                   ) : isVerifying ? (
                     <div className="px-3 py-1.5 rounded-full bg-cyan-500/30 text-cyan-200 text-xs font-bold border border-cyan-400/40 animate-pulse">
                       {language === 'hi' ? 'सत्यापन...' : 'Verifying...'}
@@ -788,6 +1017,198 @@ export const TasksView: React.FC<Props> = ({
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Interactive Math Quiz Modal (1 Attempt per Task per Day, +15 $MIMI) */}
+      {activeMathTask && activeMathTask.quizData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#131b38] via-[#09152e] to-[#030917] border-2 border-violet-400/50 p-5 shadow-[0_0_40px_rgba(139,92,246,0.35)] text-white space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white text-base shadow-[0_0_12px_rgba(139,92,246,0.6)]">
+                  🧮
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">
+                    {language === 'hi' ? 'गणित चुनौती' : 'Math Quiz Challenge'}
+                  </h3>
+                  <span className="text-[10px] text-violet-300 font-medium">
+                    {language === 'hi' ? '1 बार में सही जवाब दें' : '1 chance to solve today'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 font-mono font-black text-xs">
+                  +15 $MIMI
+                </span>
+                <button
+                  onClick={() => {
+                    playTapSound();
+                    setActiveMathTask(null);
+                  }}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Question Display Card */}
+            <div className="py-4 px-3 rounded-2xl bg-gradient-to-br from-violet-950/60 to-slate-900/90 border border-violet-400/40 text-center space-y-1 shadow-inner">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-violet-300/80 font-bold">
+                {language === 'hi' ? 'प्रश्न (Question)' : 'Question'}
+              </span>
+              <div className="text-3xl font-black font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-200 via-white to-cyan-200 py-1 drop-shadow-sm">
+                {activeMathTask.quizData.question}
+              </div>
+              <p className="text-[11px] text-slate-300 font-medium">
+                {language === 'hi'
+                  ? 'चारों में से सही उत्तर चुनें:'
+                  : 'Choose the correct answer from the 4 options:'}
+              </p>
+            </div>
+
+            {/* If Already Attempted Today */}
+            {activeMathTask.isCompleted ? (
+              <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-400/40 text-center space-y-1.5 animate-fadeIn">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-300 font-bold text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>{language === 'hi' ? 'आज का क्विज पूरा हो चुका है!' : 'Quiz already completed today!'}</span>
+                </div>
+                <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+                  {language === 'hi'
+                    ? 'आप पहले ही इस प्रश्न के +15 $MIMI प्राप्त कर चुके हैं। कल रात 12:00 बजे रीसेट पर फिर खेलें!'
+                    : 'You already claimed +15 $MIMI for this question today. Come back tomorrow after daily reset!'}
+                </p>
+                <button
+                  onClick={() => {
+                    playTapSound();
+                    setActiveMathTask(null);
+                  }}
+                  className="w-full mt-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all active:scale-95 cursor-pointer"
+                >
+                  {language === 'hi' ? 'बंद करें (Close)' : 'Close'}
+                </button>
+              </div>
+            ) : activeMathTask.isFailedToday ? (
+              <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-400/40 text-center space-y-1.5 animate-fadeIn">
+                <div className="flex items-center justify-center gap-1.5 text-rose-300 font-bold text-xs">
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <span>{language === 'hi' ? 'आज का मौका समाप्त हो चुका है' : 'Attempt used for today'}</span>
+                </div>
+                <p className="text-[11px] text-rose-200/80 leading-relaxed">
+                  {language === 'hi'
+                    ? `आज आपका उत्तर गलत हो गया था। कल रात 12:00 बजे (शेष: ${timeUntilReset.formatted}) रीसेट के बाद पुनः प्रयास करें!`
+                    : `You got this question wrong today. Try again tomorrow after daily reset (${timeUntilReset.formatted})!`}
+                </p>
+                <button
+                  onClick={() => {
+                    playTapSound();
+                    setActiveMathTask(null);
+                  }}
+                  className="w-full mt-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all active:scale-95 cursor-pointer border border-white/20"
+                >
+                  {language === 'hi' ? 'कल फिर कोशिश करेंगे (OK)' : 'Got it (OK)'}
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* 4 Options Grid */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {activeMathTask.quizData.options.map((option, idx) => {
+                    const optionLetter = ['A', 'B', 'C', 'D'][idx] || '';
+                    const isSelected = selectedMathOption === option;
+                    const isCorrect = option === activeMathTask.quizData!.correctAnswer;
+                    const hasAnswered = selectedMathOption !== null;
+
+                    let btnStyle = 'bg-[#0b1c3c] hover:bg-[#122a57] border border-cyan-500/30 text-white shadow-sm active:scale-95';
+                    if (hasAnswered) {
+                      if (isSelected) {
+                        btnStyle = isCorrect
+                          ? 'bg-emerald-500 text-slate-950 font-black border-2 border-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.8)] scale-102'
+                          : 'bg-rose-600 text-white font-black border-2 border-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.8)]';
+                      } else if (isCorrect && mathQuizResult === 'wrong') {
+                        btnStyle = 'bg-emerald-950/70 border-2 border-emerald-400/80 text-emerald-200 font-bold';
+                      } else {
+                        btnStyle = 'bg-slate-900/50 border border-slate-700/40 text-slate-500 opacity-50 cursor-not-allowed';
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        disabled={hasAnswered}
+                        onClick={() => handleSelectMathOption(option)}
+                        className={`p-3.5 rounded-2xl flex items-center justify-between gap-2 font-mono text-base transition-all duration-200 cursor-pointer ${btnStyle}`}
+                      >
+                        <span className="w-6 h-6 rounded-lg bg-black/40 flex items-center justify-center text-xs font-sans font-black opacity-80 shrink-0">
+                          {optionLetter}
+                        </span>
+                        <span className="font-extrabold text-lg flex-1 text-center">
+                          {option}
+                        </span>
+                        <span className="w-5 flex justify-end shrink-0">
+                          {isSelected && isCorrect && <Check className="w-4 h-4 text-slate-950 stroke-[3]" />}
+                          {isSelected && !isCorrect && <X className="w-4 h-4 text-white stroke-[3]" />}
+                          {hasAnswered && !isSelected && isCorrect && <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Instant Feedback Result Banners */}
+                {mathQuizResult === 'correct' && (
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/90 to-teal-950/90 border-2 border-emerald-400/70 text-center space-y-2 animate-bounce-short shadow-[0_0_25px_rgba(52,211,153,0.5)]">
+                    <div className="flex items-center justify-center gap-1.5 text-emerald-300 font-black text-sm">
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span>{language === 'hi' ? '🎉 बधाई हो! बिल्कुल सही उत्तर!' : '🎉 Congratulations! Correct!'}</span>
+                    </div>
+                    <p className="text-xs text-emerald-100 font-semibold">
+                      {language === 'hi'
+                        ? '+15 $MIMI टोकन आपके वॉलेट में जोड़ दिए गए हैं!'
+                        : '+15 $MIMI tokens credited to your balance!'}
+                    </p>
+                    <button
+                      onClick={() => {
+                        playTapSound();
+                        setActiveMathTask(null);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 font-black text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-md"
+                    >
+                      {language === 'hi' ? 'शानदार! जारी रखें (Continue)' : 'Awesome! Continue'}
+                    </button>
+                  </div>
+                )}
+
+                {mathQuizResult === 'wrong' && (
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950/90 to-red-950/90 border-2 border-rose-400/70 text-center space-y-2 animate-fadeIn shadow-[0_0_25px_rgba(244,63,94,0.4)]">
+                    <div className="flex items-center justify-center gap-1.5 text-rose-300 font-black text-sm">
+                      <AlertCircle className="w-4 h-4 text-rose-400" />
+                      <span>{language === 'hi' ? '❌ गलत उत्तर!' : '❌ Wrong Answer!'}</span>
+                    </div>
+                    <p className="text-xs text-rose-100 font-medium">
+                      {language === 'hi'
+                        ? `सही उत्तर ${activeMathTask.quizData.correctAnswer} था। कल फिर प्रयास करें!`
+                        : `The correct answer was ${activeMathTask.quizData.correctAnswer}. Try again tomorrow!`}
+                    </p>
+                    <button
+                      onClick={() => {
+                        playTapSound();
+                        setActiveMathTask(null);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-rose-400/40 text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                    >
+                      {language === 'hi' ? 'ठीक है, कल कोशिश करेंगे (OK)' : 'OK, will try tomorrow'}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

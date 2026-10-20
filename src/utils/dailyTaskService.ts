@@ -48,6 +48,7 @@ export function syncTasksWithDailyReset(
     }
 
     const isRepeatable = defaultTask.isDailyRepeatable !== false;
+    const isFailedForToday = Boolean(existing.isFailedToday && existing.lastFailedDate === todayStr);
 
     if (isRepeatable) {
       if (existing.isCompleted) {
@@ -57,6 +58,7 @@ export function syncTasksWithDailyReset(
             ...defaultTask,
             ...existing,
             isCompleted: true,
+            isFailedToday: false,
             lastCompletedDate: todayStr,
             isDailyRepeatable: true,
           };
@@ -67,6 +69,7 @@ export function syncTasksWithDailyReset(
           return {
             ...defaultTask,
             isCompleted: false,
+            isFailedToday: false,
             lastCompletedDate: existing.lastCompletedDate,
             lastCompletedTimestamp: existing.lastCompletedTimestamp,
             isDailyRepeatable: true,
@@ -78,6 +81,7 @@ export function syncTasksWithDailyReset(
     return {
       ...defaultTask,
       ...existing,
+      isFailedToday: isFailedForToday,
       isDailyRepeatable: true,
     };
   });
