@@ -47,6 +47,14 @@ export const QuizArenaView: React.FC<Props> = ({
     return () => clearInterval(timer);
   }, []);
 
+  // When tasks reset (all tasks reset or new questions loaded), reset inline answers
+  useEffect(() => {
+    const allReset = mathTasks.every((t) => !t.isCompleted && !t.isFailedToday);
+    if (allReset && Object.keys(inlineTaskAnswer).length > 0) {
+      setInlineTaskAnswer({});
+    }
+  }, [mathTasks]);
+
   const totalTasks = mathTasks.length;
   const solvedCount = mathTasks.filter(
     (t) => t.isCompleted || inlineTaskAnswer[t.id]?.isCorrect === true
@@ -126,6 +134,11 @@ export const QuizArenaView: React.FC<Props> = ({
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide mt-0.5">
                 {language === 'hi' ? 'मिमी मैथ क्विज एरीना' : 'Mimi Math Quiz Arena'}
               </h2>
+              <p className="text-[11px] text-violet-200/80 font-medium">
+                {language === 'hi'
+                  ? '🔄 रोज़ाना रात 12:00 बजे रीसेट पर नए सवाल बदल जाते हैं'
+                  : '🔄 Questions rotate to brand new math challenges on daily reset'}
+              </p>
             </div>
           </div>
         </div>

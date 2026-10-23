@@ -1,13 +1,99 @@
 /**
- * 25 Interactive Math Quiz Tasks for Music Mimi ($MIMI) Protocol
- * Operations: Addition (+), Subtraction (-), Multiplication (×), Division (÷)
- * Reward: 15 $MIMI tokens per correct answer (1 attempt per task per day)
+ * Dynamic Daily Math Quiz Generator for Music Mimi ($MIMI) Protocol
+ * 30 Math Quiz Tasks with operations: Addition (+), Subtraction (-), Multiplication (×), Division (÷)
+ *
+ * When daily reset occurs, the date changes and all 30 questions rotate to brand new,
+ * freshly generated math questions deterministically seeded by the new calendar date.
  */
 
 import { AirdropTask } from '../types/airdrop.ts';
 
-interface MathQuestionDef {
-  id: string;
+export function getTodayDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Deterministic Pseudo-Random Number Generator based on Linear Congruential Generator
+function stringToSeed(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function createSeededRng(seed: number): () => number {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+// Deterministic array shuffle using seeded RNG
+function shuffleArray<T>(arr: T[], rng: () => number): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// Generate 4 unique positive options including the correct answer
+function buildUniqueOptions(correct: number, rng: () => number, spread: number = 10): number[] {
+  const optionsSet = new Set<number>();
+  optionsSet.add(correct);
+
+  // Preferred offset deltas
+  const deltas = [
+    spread,
+    -spread,
+    spread * 2,
+    -spread * 2,
+    2,
+    -2,
+    3,
+    -3,
+    5,
+    -5,
+    1,
+    -1,
+    4,
+    -4,
+    spread + 2,
+    spread - 2,
+  ];
+
+  const shuffledDeltas = shuffleArray(deltas, rng);
+
+  for (const delta of shuffledDeltas) {
+    if (optionsSet.size >= 4) break;
+    const candidate = correct + delta;
+    if (candidate > 0 && !optionsSet.has(candidate)) {
+      optionsSet.add(candidate);
+    }
+  }
+
+  // Fallback if needed
+  let step = 1;
+  while (optionsSet.size < 4) {
+    const candidate = correct + step * (rng() > 0.5 ? 1 : -1) * Math.floor(rng() * 6 + 1);
+    if (candidate > 0 && !optionsSet.has(candidate)) {
+      optionsSet.add(candidate);
+    }
+    step++;
+  }
+
+  return shuffleArray(Array.from(optionsSet), rng);
+}
+
+interface GeneratedQuestion {
   question: string;
   options: number[];
   correctAnswer: number;
@@ -18,356 +104,129 @@ interface MathQuestionDef {
   descEn: string;
 }
 
-const MATH_QUESTIONS: MathQuestionDef[] = [
-  {
-    id: 'math-quiz-1',
-    question: '45 + 38 = ?',
-    options: [73, 83, 85, 78],
-    correctAnswer: 83,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 45 + 38 = ?',
-    titleEn: 'Addition Quiz: 45 + 38 = ?',
-    descHi: 'सही उत्तर चुनकर तुरंत 15 $MIMI जीतें! (1 मौका आज)',
-    descEn: 'Pick the right answer and win 15 $MIMI! (1 try today)',
-  },
-  {
-    id: 'math-quiz-2',
-    question: '12 × 7 = ?',
-    options: [84, 74, 96, 88],
-    correctAnswer: 84,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 12 × 7 = ?',
-    titleEn: 'Multiply Quiz: 12 × 7 = ?',
-    descHi: 'पहाड़े का सही जवाब दें और 15 $MIMI अर्जित करें।',
-    descEn: 'Solve the multiplication table for 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-3',
-    question: '95 - 47 = ?',
-    options: [48, 52, 42, 58],
-    correctAnswer: 48,
-    operation: '-',
-    titleHi: 'घटाव क्विज: 95 - 47 = ?',
-    titleEn: 'Subtract Quiz: 95 - 47 = ?',
-    descHi: 'घटाव का सही उत्तर चुनकर 15 $MIMI क्लेम करें।',
-    descEn: 'Pick the right subtraction answer to earn 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-4',
-    question: '144 ÷ 12 = ?',
-    options: [14, 11, 12, 16],
-    correctAnswer: 12,
-    operation: '÷',
-    titleHi: 'भाग क्विज: 144 ÷ 12 = ?',
-    titleEn: 'Division Quiz: 144 ÷ 12 = ?',
-    descHi: 'भागफल का सही उत्तर दें और 15 $MIMI प्राप्त करें।',
-    descEn: 'Solve the division to unlock 15 $MIMI tokens.',
-  },
-  {
-    id: 'math-quiz-5',
-    question: '64 + 59 = ?',
-    options: [113, 123, 121, 119],
-    correctAnswer: 123,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 64 + 59 = ?',
-    titleEn: 'Addition Quiz: 64 + 59 = ?',
-    descHi: 'सही जोड़ चुनकर 15 $MIMI टोकन अपने खाते में जोड़ें।',
-    descEn: 'Add the numbers correctly to claim 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-6',
-    question: '15 × 6 = ?',
-    options: [80, 95, 90, 85],
-    correctAnswer: 90,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 15 × 6 = ?',
-    titleEn: 'Multiply Quiz: 15 × 6 = ?',
-    descHi: '15 गुणा 6 का सही विकल्प चुनें और 15 $MIMI जीतें।',
-    descEn: 'Multiply 15 by 6 correctly and win 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-7',
-    question: '120 - 65 = ?',
-    options: [55, 65, 45, 58],
-    correctAnswer: 55,
-    operation: '-',
-    titleHi: 'घटाव क्विज: 120 - 65 = ?',
-    titleEn: 'Subtract Quiz: 120 - 65 = ?',
-    descHi: 'घटाने पर क्या आएगा? सही उत्तर चुनें (+15 $MIMI)।',
-    descEn: 'What is 120 minus 65? Solve for +15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-8',
-    question: '96 ÷ 8 = ?',
-    options: [14, 12, 13, 11],
-    correctAnswer: 12,
-    operation: '÷',
-    titleHi: 'भाग क्विज: 96 ÷ 8 = ?',
-    titleEn: 'Division Quiz: 96 ÷ 8 = ?',
-    descHi: '96 को 8 से भाग देकर सही उत्तर चुनें (+15 $MIMI)।',
-    descEn: 'Divide 96 by 8 correctly to earn 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-9',
-    question: '78 + 46 = ?',
-    options: [122, 124, 114, 134],
-    correctAnswer: 124,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 78 + 46 = ?',
-    titleEn: 'Addition Quiz: 78 + 46 = ?',
-    descHi: 'दोनों संख्याओं का कुल योग बताएं और 15 $MIMI पाएं।',
-    descEn: 'Find the total sum of 78 + 46 for 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-10',
-    question: '14 × 5 = ?',
-    options: [70, 65, 75, 80],
-    correctAnswer: 70,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 14 × 5 = ?',
-    titleEn: 'Multiply Quiz: 14 × 5 = ?',
-    descHi: '14 गुणा 5 का सही गुणनफल चुनें (+15 $MIMI)।',
-    descEn: 'Calculate 14 times 5 to claim 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-11',
-    question: '150 - 82 = ?',
-    options: [68, 72, 58, 66],
-    correctAnswer: 68,
-    operation: '-',
-    titleHi: 'घटाव क्विज: 150 - 82 = ?',
-    titleEn: 'Subtract Quiz: 150 - 82 = ?',
-    descHi: '150 में से 82 घटाएं और सही विकल्प पर टैप करें।',
-    descEn: 'Subtract 82 from 150 and claim 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-12',
-    question: '108 ÷ 9 = ?',
-    options: [11, 13, 12, 14],
-    correctAnswer: 12,
-    operation: '÷',
-    titleHi: 'भाग क्विज: 108 ÷ 9 = ?',
-    titleEn: 'Division Quiz: 108 ÷ 9 = ?',
-    descHi: '108 को 9 से भाग देने पर क्या मिलता है? (+15 $MIMI)',
-    descEn: 'What is 108 divided by 9? Claim 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-13',
-    question: '89 + 74 = ?',
-    options: [153, 163, 165, 159],
-    correctAnswer: 163,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 89 + 74 = ?',
-    titleEn: 'Addition Quiz: 89 + 74 = ?',
-    descHi: '89 और 74 का सही योग क्या है? (+15 $MIMI)',
-    descEn: 'Sum up 89 and 74 to get 15 $MIMI instantly.',
-  },
-  {
-    id: 'math-quiz-14',
-    question: '13 × 8 = ?',
-    options: [104, 94, 114, 98],
-    correctAnswer: 104,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 13 × 8 = ?',
-    titleEn: 'Multiply Quiz: 13 × 8 = ?',
-    descHi: '13 को 8 से गुणा करके सही उत्तर चुनें (+15 $MIMI)।',
-    descEn: 'Multiply 13 by 8 to earn 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-15',
-    question: '180 - 95 = ?',
-    options: [85, 75, 95, 88],
-    correctAnswer: 85,
-    operation: '-',
-    titleHi: 'घटाव क्विज: 180 - 95 = ?',
-    titleEn: 'Subtract Quiz: 180 - 95 = ?',
-    descHi: '180 में से 95 कम करें और 15 $MIMI टोकन पाएं।',
-    descEn: 'Subtract 95 from 180 and earn 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-16',
-    question: '135 ÷ 5 = ?',
-    options: [25, 27, 29, 23],
-    correctAnswer: 27,
-    operation: '÷',
-    titleHi: 'भाग क्विज: 135 ÷ 5 = ?',
-    titleEn: 'Division Quiz: 135 ÷ 5 = ?',
-    descHi: '135 को 5 से भाग दें और सही विकल्प चुनें (+15 $MIMI)।',
-    descEn: 'Divide 135 by 5 to unlock 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-17',
-    question: '99 + 88 = ?',
-    options: [187, 177, 189, 197],
-    correctAnswer: 187,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 99 + 88 = ?',
-    titleEn: 'Addition Quiz: 99 + 88 = ?',
-    descHi: '99 और 88 का जोड़ बताएं और 15 $MIMI अर्जित करें।',
-    descEn: 'What is 99 + 88? Pick correctly for 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-18',
-    question: '16 × 4 = ?',
-    options: [64, 54, 74, 68],
-    correctAnswer: 64,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 16 × 4 = ?',
-    titleEn: 'Multiply Quiz: 16 × 4 = ?',
-    descHi: '16 चौके कितना होता है? सही उत्तर चुनें (+15 $MIMI)।',
-    descEn: 'Calculate 16 multiplied by 4 for 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-19',
-    question: '210 - 75 = ?',
-    options: [125, 135, 145, 130],
-    correctAnswer: 135,
-    operation: '-',
-    titleHi: 'घटाव क्विज: 210 - 75 = ?',
-    titleEn: 'Subtract Quiz: 210 - 75 = ?',
-    descHi: '210 में से 75 घटाएं और 15 $MIMI टोकन जीतें।',
-    descEn: 'Subtract 75 from 210 to claim 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-20',
-    question: '160 ÷ 8 = ?',
-    options: [20, 18, 22, 24],
-    correctAnswer: 20,
-    operation: '÷',
-    titleHi: 'भाग क्विज: 160 ÷ 8 = ?',
-    titleEn: 'Division Quiz: 160 ÷ 8 = ?',
-    descHi: '160 को 8 से भाग देकर तुरंत 15 $MIMI प्राप्त करें।',
-    descEn: 'Divide 160 by 8 to earn 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-21',
-    question: '137 + 49 = ?',
-    options: [176, 186, 184, 196],
-    correctAnswer: 186,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 137 + 49 = ?',
-    titleEn: 'Addition Quiz: 137 + 49 = ?',
-    descHi: '137 में 49 जोड़ने पर क्या मिलेगा? (+15 $MIMI)',
-    descEn: 'Add 137 + 49 for 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-22',
-    question: '18 × 3 = ?',
-    options: [48, 54, 52, 56],
-    correctAnswer: 54,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 18 × 3 = ?',
-    titleEn: 'Multiply Quiz: 18 × 3 = ?',
-    descHi: '18 गुणा 3 का सही उत्तर चुनें और 15 $MIMI पाएं।',
-    descEn: 'What is 18 times 3? Solve for 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-23',
-    question: '250 - 115 = ?',
-    options: [145, 135, 125, 130],
-    correctAnswer: 135,
-    operation: '-',
-    titleHi: 'घटाव क्विज: 250 - 115 = ?',
-    titleEn: 'Subtract Quiz: 250 - 115 = ?',
-    descHi: '250 में से 115 घटाने पर सही परिणाम चुनें (+15 $MIMI)।',
-    descEn: 'Subtract 115 from 250 to earn 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-24',
-    question: '156 ÷ 12 = ?',
-    options: [11, 12, 13, 14],
-    correctAnswer: 13,
-    operation: '÷',
-    titleHi: 'भाग क्विज: 156 ÷ 12 = ?',
-    titleEn: 'Division Quiz: 156 ÷ 12 = ?',
-    descHi: '156 को 12 से भाग देकर सही उत्तर पर क्लिक करें (+15 $MIMI)।',
-    descEn: 'Divide 156 by 12 to unlock 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-25',
-    question: '125 + 175 = ?',
-    options: [290, 310, 300, 280],
-    correctAnswer: 300,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 125 + 175 = ?',
-    titleEn: 'Addition Quiz: 125 + 175 = ?',
-    descHi: '125 और 175 का कुल जोड़ कितना है? (+15 $MIMI)',
-    descEn: 'What is the sum of 125 and 175? Claim 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-26',
-    question: '19 × 4 = ?',
-    options: [72, 76, 84, 68],
-    correctAnswer: 76,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 19 × 4 = ?',
-    titleEn: 'Multiply Quiz: 19 × 4 = ?',
-    descHi: '19 को 4 से गुणा करके सही विकल्प चुनें (+15 $MIMI)।',
-    descEn: 'Calculate 19 multiplied by 4 to claim 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-27',
-    question: '320 - 145 = ?',
-    options: [165, 175, 185, 170],
-    correctAnswer: 175,
-    operation: '-',
-    titleHi: 'घटाव क्विज: 320 - 145 = ?',
-    titleEn: 'Subtract Quiz: 320 - 145 = ?',
-    descHi: '320 में से 145 घटाएं और 15 $MIMI टोकन प्राप्त करें।',
-    descEn: 'Subtract 145 from 320 to earn 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-28',
-    question: '225 ÷ 15 = ?',
-    options: [13, 15, 17, 19],
-    correctAnswer: 15,
-    operation: '÷',
-    titleHi: 'भाग क्विज: 225 ÷ 15 = ?',
-    titleEn: 'Division Quiz: 225 ÷ 15 = ?',
-    descHi: '225 को 15 से भाग दें और सही उत्तर पर टैप करें (+15 $MIMI)।',
-    descEn: 'Divide 225 by 15 correctly for 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-29',
-    question: '168 + 84 = ?',
-    options: [242, 252, 262, 248],
-    correctAnswer: 252,
-    operation: '+',
-    titleHi: 'जोड़ क्विज: 168 + 84 = ?',
-    titleEn: 'Addition Quiz: 168 + 84 = ?',
-    descHi: '168 और 84 का सही योग क्या है? (+15 $MIMI)',
-    descEn: 'Find the sum of 168 and 84 to unlock 15 $MIMI.',
-  },
-  {
-    id: 'math-quiz-30',
-    question: '17 × 6 = ?',
-    options: [92, 108, 102, 98],
-    correctAnswer: 102,
-    operation: '×',
-    titleHi: 'गुणा क्विज: 17 × 6 = ?',
-    titleEn: 'Multiply Quiz: 17 × 6 = ?',
-    descHi: '17 को 6 से गुणा करें और सही उत्तर चुनकर 15 $MIMI पाएं।',
-    descEn: 'Multiply 17 by 6 correctly to win 15 $MIMI.',
-  },
-];
+function generateQuestionForIndex(index: number, dateStr: string): GeneratedQuestion {
+  const seed = stringToSeed(`${dateStr}:math-task-${index}`);
+  const rng = createSeededRng(seed);
 
-export const MATH_QUIZ_TASKS: AirdropTask[] = MATH_QUESTIONS.map((q) => ({
-  id: q.id,
-  category: 'math',
-  subType: 'math',
-  iconType: 'math',
-  title: `${q.titleHi} (+15 $MIMI)`,
-  titleEn: `${q.titleEn} (+15 $MIMI)`,
-  description: q.descHi,
-  descriptionEn: q.descEn,
-  reward: 15,
-  isCompleted: false,
-  isDailyRepeatable: true,
-  verificationType: 'auto',
-  quizData: {
-    question: q.question,
-    options: q.options,
-    correctAnswer: q.correctAnswer,
-    operation: q.operation,
-  },
-}));
+  // 30 Tasks Distribution:
+  // 0 - 7: Addition (+) [8 tasks]
+  // 8 - 15: Subtraction (-) [8 tasks]
+  // 16 - 22: Multiplication (×) [7 tasks]
+  // 23 - 29: Division (÷) [7 tasks]
+
+  if (index <= 7) {
+    // Addition (+)
+    const a = Math.floor(rng() * 85) + 20; // 20 to 104
+    const b = Math.floor(rng() * 75) + 15; // 15 to 89
+    const correct = a + b;
+    const options = buildUniqueOptions(correct, rng, 10);
+    const question = `${a} + ${b} = ?`;
+
+    return {
+      question,
+      options,
+      correctAnswer: correct,
+      operation: '+',
+      titleHi: `जोड़ क्विज: ${question}`,
+      titleEn: `Addition Quiz: ${question}`,
+      descHi: `सही जोड़ चुनकर 15 $MIMI जीतें! (1 मौका आज)`,
+      descEn: `Add numbers correctly to win 15 $MIMI! (1 try today)`,
+    };
+  } else if (index <= 15) {
+    // Subtraction (-)
+    const b = Math.floor(rng() * 70) + 25; // 25 to 94
+    const diff = Math.floor(rng() * 65) + 20; // 20 to 84
+    const a = b + diff; // always a > b, so a - b = diff > 0
+    const correct = diff;
+    const options = buildUniqueOptions(correct, rng, 10);
+    const question = `${a} - ${b} = ?`;
+
+    return {
+      question,
+      options,
+      correctAnswer: correct,
+      operation: '-',
+      titleHi: `घटाव क्विज: ${question}`,
+      titleEn: `Subtract Quiz: ${question}`,
+      descHi: `घटाव का सही उत्तर चुनकर 15 $MIMI अर्जित करें।`,
+      descEn: `Pick the right subtraction answer to earn 15 $MIMI.`,
+    };
+  } else if (index <= 22) {
+    // Multiplication (×)
+    const a = Math.floor(rng() * 12) + 11; // 11 to 22
+    const b = Math.floor(rng() * 8) + 3;  // 3 to 10
+    const correct = a * b;
+    const options = buildUniqueOptions(correct, rng, a);
+    const question = `${a} × ${b} = ?`;
+
+    return {
+      question,
+      options,
+      correctAnswer: correct,
+      operation: '×',
+      titleHi: `गुणा क्विज: ${question}`,
+      titleEn: `Multiply Quiz: ${question}`,
+      descHi: `पहाड़े का सही जवाब दें और 15 $MIMI पाएं।`,
+      descEn: `Solve the multiplication for 15 $MIMI.`,
+    };
+  } else {
+    // Division (÷)
+    const divisor = Math.floor(rng() * 11) + 4; // 4 to 14
+    const quotient = Math.floor(rng() * 16) + 8; // 8 to 23
+    const dividend = divisor * quotient; // always perfectly divisible
+    const correct = quotient;
+    const options = buildUniqueOptions(correct, rng, 2);
+    const question = `${dividend} ÷ ${divisor} = ?`;
+
+    return {
+      question,
+      options,
+      correctAnswer: correct,
+      operation: '÷',
+      titleHi: `भाग क्विज: ${question}`,
+      titleEn: `Division Quiz: ${question}`,
+      descHi: `भागफल का सही उत्तर चुनकर 15 $MIMI क्लेम करें।`,
+      descEn: `Solve the division correctly to claim 15 $MIMI.`,
+    };
+  }
+}
+
+/**
+ * Generates all 30 math quiz tasks for a given calendar date.
+ * When a new day comes or reset occurs, calling this produces 30 new, different questions!
+ */
+export function generateDailyMathQuizTasks(dateStr: string = getTodayDateString()): AirdropTask[] {
+  const tasks: AirdropTask[] = [];
+
+  for (let i = 0; i < 30; i++) {
+    const id = `math-quiz-${i + 1}`;
+    const q = generateQuestionForIndex(i, dateStr);
+
+    tasks.push({
+      id,
+      category: 'math',
+      subType: 'math',
+      iconType: 'math',
+      title: `${q.titleHi} (+15 $MIMI)`,
+      titleEn: `${q.titleEn} (+15 $MIMI)`,
+      description: q.descHi,
+      descriptionEn: q.descEn,
+      reward: 15,
+      isCompleted: false,
+      isDailyRepeatable: true,
+      verificationType: 'auto',
+      quizData: {
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        operation: q.operation,
+        dateGenerated: dateStr,
+      },
+    });
+  }
+
+  return tasks;
+}
+
+// Default export of tasks generated for today's date
+export const MATH_QUIZ_TASKS: AirdropTask[] = generateDailyMathQuizTasks();

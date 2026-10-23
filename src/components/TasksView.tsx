@@ -224,7 +224,7 @@ export const TasksView: React.FC<Props> = ({
             ? `8 घंटे में अधिकतम 10 विज्ञापन सीमा पूरी हो चुकी है। कृपया ${cooldown.formattedCooldown} बाद पुनः देखें।`
             : `10/10 ads limit reached for this 8-hour period. Next batch in ${cooldown.formattedCooldown}.`
         );
-        triggerHaptic('warning');
+        triggerHaptic('medium');
         return;
       }
       if (onOpenAdsgram) {
@@ -300,7 +300,7 @@ export const TasksView: React.FC<Props> = ({
           ? `8 घंटे में अधिकतम 10 विज्ञापन सीमा पूरी हो चुकी है। कृपया ${cooldown.formattedCooldown} बाद पुनः देखें।`
           : `10/10 ads limit reached for this 8-hour period. Next batch in ${cooldown.formattedCooldown}.`
       );
-      triggerHaptic('warning');
+      triggerHaptic('medium');
       return;
     }
     const matchingTask = tasks.find(
@@ -530,8 +530,8 @@ export const TasksView: React.FC<Props> = ({
                       </h3>
                       <p className="text-xs text-cyan-200/80 mt-0.5">
                         {language === 'hi'
-                          ? 'गणित के सवाल हल करें और रोज़ाना +450 $MIMI तक जीतें!'
-                          : 'Solve daily math puzzles & earn up to +450 $MIMI!'}
+                          ? 'गणित सवाल हल करें और +450 $MIMI जीतें! रीसेट पर सवाल अपने आप बदल जाते हैं 🔄'
+                          : 'Solve daily math & win +450 $MIMI! Questions rotate automatically on reset 🔄'}
                       </p>
                     </div>
                   </div>

@@ -127,6 +127,7 @@ export interface MathQuizData {
   options: number[];
   correctAnswer: number;
   operation: '+' | '-' | '×' | '÷';
+  dateGenerated?: string;
 }
 
 export interface AirdropTask {

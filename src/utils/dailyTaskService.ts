@@ -1,17 +1,13 @@
 /**
  * Daily Task Reset Service for Music Mimi ($MIMI) Protocol
  * Handles 24-hour daily reset so tasks can be claimed again every single day.
+ * When tasks reset, math quiz questions automatically rotate to a new, different question set!
  */
 
 import { AirdropTask } from '../types/airdrop.ts';
+import { generateDailyMathQuizTasks, getTodayDateString } from './mathTasksData.ts';
 
-export function getTodayDateString(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+export { getTodayDateString };
 
 export function getTimeUntilNextReset(): {
   hours: number;
@@ -32,55 +28,67 @@ export function getTimeUntilNextReset(): {
 
 /**
  * Syncs saved tasks against default tasks and applies daily reset logic.
- * If a task was completed on a previous day (or legacy without date), it resets to false.
+ * When daily reset occurs:
+ * 1. Tasks are refreshed so user can claim daily repeatable tasks again.
+ * 2. Math quiz questions automatically rotate to brand new, different questions seeded by the new date!
  */
 export function syncTasksWithDailyReset(
   currentTasks: AirdropTask[],
-  defaultTasks: AirdropTask[]
+  defaultTasks: AirdropTask[],
+  overrideTodayDate?: string
 ): { tasks: AirdropTask[]; hasResetOccurred: boolean } {
-  const todayStr = getTodayDateString();
+  const todayStr = overrideTodayDate || getTodayDateString();
   let hasResetOccurred = false;
 
+  // Generate today's fresh questions seeded by today's date
+  const todayMathTasks = generateDailyMathQuizTasks(todayStr);
+
   const synced = defaultTasks.map((defaultTask) => {
+    const isMathTask = defaultTask.category === 'math' || defaultTask.quizData;
+    const taskDef = isMathTask
+      ? (todayMathTasks.find((m) => m.id === defaultTask.id) || defaultTask)
+      : defaultTask;
+
     const existing = currentTasks.find((t) => t.id === defaultTask.id);
     if (!existing) {
-      return { ...defaultTask, isDailyRepeatable: true, isCompleted: false };
+      return { ...taskDef, isDailyRepeatable: true, isCompleted: false, isFailedToday: false };
     }
 
     const isRepeatable = defaultTask.isDailyRepeatable !== false;
-    const isFailedForToday = Boolean(existing.isFailedToday && existing.lastFailedDate === todayStr);
 
-    if (isRepeatable) {
-      if (existing.isCompleted) {
-        // If completed today, keep it completed for today
-        if (existing.lastCompletedDate === todayStr) {
-          return {
-            ...defaultTask,
-            ...existing,
-            isCompleted: true,
-            isFailedToday: false,
-            lastCompletedDate: todayStr,
-            isDailyRepeatable: true,
-          };
-        } else {
-          // Completed on previous day or legacy record without date
-          // Reset so user can do and claim it again TODAY!
-          hasResetOccurred = true;
-          return {
-            ...defaultTask,
-            isCompleted: false,
-            isFailedToday: false,
-            lastCompletedDate: existing.lastCompletedDate,
-            lastCompletedTimestamp: existing.lastCompletedTimestamp,
-            isDailyRepeatable: true,
-          };
-        }
-      }
+    // Check if task needs daily reset (previous day completion, previous day failure, or old quiz question date)
+    const isOldQuizDate = isMathTask && Boolean(!existing.quizData?.dateGenerated || existing.quizData.dateGenerated !== todayStr);
+    const isCompletedOnPreviousDay = Boolean(existing.isCompleted && existing.lastCompletedDate !== todayStr);
+    const isFailedOnPreviousDay = Boolean(existing.isFailedToday && existing.lastFailedDate !== todayStr);
+
+    if (isRepeatable && (isOldQuizDate || isCompletedOnPreviousDay || isFailedOnPreviousDay)) {
+      hasResetOccurred = true;
+
+      // On reset: Questions rotate to the new day's questions, completion & failure states reset!
+      return {
+        ...taskDef,
+        isCompleted: false,
+        isFailedToday: false,
+        lastCompletedDate: existing.lastCompletedDate,
+        lastCompletedTimestamp: existing.lastCompletedTimestamp,
+        isDailyRepeatable: true,
+      };
     }
 
+    // Within the same day:
+    const isFailedForToday = Boolean(existing.isFailedToday && existing.lastFailedDate === todayStr);
+    const isCompletedForToday = Boolean(existing.isCompleted && existing.lastCompletedDate === todayStr);
+
     return {
-      ...defaultTask,
+      ...taskDef,
       ...existing,
+      // Keep question fresh for today
+      quizData: existing.quizData && existing.quizData.dateGenerated === todayStr ? existing.quizData : taskDef.quizData,
+      title: existing.quizData && existing.quizData.dateGenerated === todayStr ? existing.title : taskDef.title,
+      titleEn: existing.quizData && existing.quizData.dateGenerated === todayStr ? existing.titleEn : taskDef.titleEn,
+      description: existing.quizData && existing.quizData.dateGenerated === todayStr ? existing.description : taskDef.description,
+      descriptionEn: existing.quizData && existing.quizData.dateGenerated === todayStr ? existing.descriptionEn : taskDef.descriptionEn,
+      isCompleted: isCompletedForToday,
       isFailedToday: isFailedForToday,
       isDailyRepeatable: true,
     };
