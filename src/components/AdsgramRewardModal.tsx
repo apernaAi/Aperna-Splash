@@ -19,6 +19,9 @@ interface Props {
   stats: UserStats;
   onRewardUser: (mimiReward: number, tonContributed: number) => void;
   language: Language;
+  blockType?: 'reward' | 'interstitial' | 'task';
+  rewardAmount?: number;
+  taskTitle?: string;
 }
 
 export const AdsgramRewardModal: React.FC<Props> = ({
@@ -27,6 +30,9 @@ export const AdsgramRewardModal: React.FC<Props> = ({
   stats,
   onRewardUser,
   language,
+  blockType = 'reward',
+  rewardAmount = 15,
+  taskTitle,
 }) => {
   if (!isOpen) return null;
 
@@ -102,7 +108,7 @@ export const AdsgramRewardModal: React.FC<Props> = ({
       };
     }
 
-    const currentBlockId = getActiveAdsgramBlockId();
+    const currentBlockId = getActiveAdsgramBlockId(blockType);
 
     // Attempt native Adsgram SDK if initialized
     if (typeof window !== 'undefined' && window.Adsgram) {
@@ -146,7 +152,7 @@ export const AdsgramRewardModal: React.FC<Props> = ({
     triggerHaptic('heavy');
     setIsClaimed(true);
 
-    const mimiReward = 15;
+    const mimiReward = rewardAmount || 15;
     const tonContributed = ADSGRAM_CONFIG.tonPerAdEstimate;
     onRewardUser(mimiReward, tonContributed);
 
@@ -168,13 +174,13 @@ export const AdsgramRewardModal: React.FC<Props> = ({
             </div>
             <div>
               <h3 className="text-sm font-black text-white flex items-center gap-1.5">
-                <span>{language === 'hi' ? 'स्पॉन्सर वीडियो बूस्ट' : 'Sponsor Video Boost'}</span>
+                <span>{taskTitle || (language === 'hi' ? 'Adsgram स्पॉन्सर बूस्ट' : 'Adsgram Sponsor Boost')}</span>
                 <span className="text-[9px] font-mono bg-cyan-950 px-1.5 py-0.2 rounded border border-cyan-400/40 text-cyan-300">
-                  +15 $MIMI
+                  +{rewardAmount || 15} $MIMI
                 </span>
               </h3>
               <p className="text-[10px] text-cyan-200/80 font-mono">
-                {language === 'hi' ? 'छोटा वीडियो देखें और टोकन पाएं' : 'Watch video & claim instant tokens'}
+                {language === 'hi' ? 'स्पॉन्सर एड देखें और टोकन पाएं' : 'Engage with sponsor & claim tokens'}
               </p>
             </div>
           </div>

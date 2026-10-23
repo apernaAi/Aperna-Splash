@@ -7,14 +7,14 @@ export type AdsgramBlockType = 'reward' | 'interstitial' | 'task';
 export const ADSGRAM_CONFIG = {
   // Official Owner / Revenue Wallet Address
   ownerRevenueWallet: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OWNER_REVENUE_WALLET) || 'UQCq-PboNEs9iF9VaUIGt2PxVuUXcykeq0R0zcBg1nchEXAF',
-  // Default clean approved block IDs (can be overridden dynamically or via .env)
+  // Default clean approved block IDs (real verified units from partner.adsgram.ai)
   defaultBlocks: {
-    reward: '53441',
-    interstitial: '53441',
-    task: '53441',
+    reward: '55577',
+    interstitial: 'int-55578',
+    task: 'task-55579',
   },
-  primaryBlockId: '53441',
-  defaultBlockId: '53441',
+  primaryBlockId: '55577',
+  defaultBlockId: '55577',
   targetDexPools: ['STON.fi', 'DeDust.io'] as const,
   tonPerAdEstimate: 0.015,
   payoutRoutingNotice: 'All ad network payouts generated from Adsgram are routed directly to Owner Wallet (UQCq-PboNEs9...). 100% of this revenue is reserved to seed the $MIMI / TON Liquidity Pool on STON.fi & DeDust.',

@@ -418,6 +418,7 @@ export default function App() {
   const [isBotSyncOpen, setIsBotSyncOpen] = useState(false);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [isAdsgramModalOpen, setIsAdsgramModalOpen] = useState(false);
+  const [selectedAdTask, setSelectedAdTask] = useState<AirdropTask | null>(null);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [celebrationData, setCelebrationData] = useState<{ newLevel: number; track: MusicTrack } | null>(null);
   const [walletCelebration, setWalletCelebration] = useState<RewardCelebrationProps | null>(null);
@@ -761,7 +762,7 @@ export default function App() {
   };
 
   // Rewarded Adsgram Ad Completion handler
-  const handleRewardAdsgram = (mimiReward: number, tonContributed: number) => {
+  const handleRewardAdsgram = (mimiReward: number, tonContributed: number, specificTaskId?: string) => {
     const tapCheck = validateHumanTapVelocity();
     if (!tapCheck.isAllowed) {
       console.warn('Z+ Rate limit triggered on reward');
@@ -781,11 +782,12 @@ export default function App() {
     }));
     creditReferralCommission(stats.userId, mimiReward, 'Adsgram').catch(console.error);
 
-    // Automatically complete adsgram-video-daily task
+    // Automatically complete target Adsgram task
+    const targetTaskId = specificTaskId || selectedAdTask?.id || 'adsgram-video-daily';
     const todayStr = getTodayDateString();
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === 'adsgram-video-daily' || t.isAdsgramTask
+        t.id === targetTaskId || (!specificTaskId && (t.id === 'adsgram-video-daily' || t.isAdsgramTask))
           ? {
               ...t,
               isCompleted: true,
@@ -1051,7 +1053,10 @@ export default function App() {
             onClaimDailyStreak={handleClaimDailyStreak}
             onOpenArcade={() => setIsArcadeModalOpen(true)}
             onOpenWallet={() => setIsWalletModalOpen(true)}
-            onOpenAdsgram={() => setIsAdsgramModalOpen(true)}
+            onOpenAdsgram={(task) => {
+              setSelectedAdTask(task || null);
+              setIsAdsgramModalOpen(true);
+            }}
             language={language}
           />
         )}
@@ -1169,10 +1174,22 @@ export default function App() {
       {/* Adsgram Rewarded Video Ad & DEX LP Booster Modal */}
       <AdsgramRewardModal
         isOpen={isAdsgramModalOpen}
-        onClose={() => setIsAdsgramModalOpen(false)}
+        onClose={() => {
+          setIsAdsgramModalOpen(false);
+          setSelectedAdTask(null);
+        }}
         stats={stats}
-        onRewardUser={handleRewardAdsgram}
+        onRewardUser={(reward, ton) => handleRewardAdsgram(reward, ton, selectedAdTask?.id)}
         language={language}
+        blockType={
+          selectedAdTask?.id === 'adsgram-task-native'
+            ? 'task'
+            : selectedAdTask?.id === 'adsgram-interstitial-daily'
+            ? 'interstitial'
+            : 'reward'
+        }
+        rewardAmount={selectedAdTask?.reward || 15}
+        taskTitle={selectedAdTask ? (language === 'hi' ? selectedAdTask.title : selectedAdTask.titleEn) : undefined}
       />
 
       {/* Arcade Beat Rush Modal */}

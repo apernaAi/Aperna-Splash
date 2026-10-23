@@ -50,7 +50,7 @@ interface Props {
   onClaimDailyStreak: (day: number, reward: number) => void;
   onOpenArcade: () => void;
   onOpenWallet: () => void;
-  onOpenAdsgram?: () => void;
+  onOpenAdsgram?: (task?: AirdropTask) => void;
   language: Language;
 }
 
@@ -214,7 +214,7 @@ export const TasksView: React.FC<Props> = ({
     // Adsgram Rewarded Video tasks trigger interactive video player & SDK
     if (task.isAdsgramTask || task.category === 'adsgram' || task.verificationType === 'ad_watched') {
       if (onOpenAdsgram) {
-        onOpenAdsgram();
+        onOpenAdsgram(task);
       }
       return;
     }
