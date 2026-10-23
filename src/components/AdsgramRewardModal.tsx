@@ -10,7 +10,7 @@ import {
   Zap
 } from 'lucide-react';
 import { UserStats, Language } from '../types/airdrop.ts';
-import { ADSGRAM_CONFIG, getActiveAdsgramBlockId, setActiveAdsgramBlockId } from '../utils/adsgramService.ts';
+import { ADSGRAM_CONFIG, getActiveAdsgramBlockId, setActiveAdsgramBlockId, sanitizeAdsgramBlockId } from '../utils/adsgramService.ts';
 import { playClaimRewardSound, playTapSound, triggerHaptic } from '../utils/audioEngine.ts';
 
 interface Props {
@@ -96,7 +96,7 @@ export const AdsgramRewardModal: React.FC<Props> = ({
       };
     }
 
-    const currentBlockId = getActiveAdsgramBlockId(blockType);
+    const currentBlockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId(blockType));
 
     // Attempt native Adsgram SDK if initialized
     if (typeof window !== 'undefined' && window.Adsgram) {

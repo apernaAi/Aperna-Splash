@@ -8,10 +8,11 @@ export const ADSGRAM_CONFIG = {
   // Official Owner / Revenue Wallet Address
   ownerRevenueWallet: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OWNER_REVENUE_WALLET) || 'UQCq-PboNEs9iF9VaUIGt2PxVuUXcykeq0R0zcBg1nchEXAF',
   // Default clean approved block IDs (real verified units from partner.adsgram.ai)
+  // Notice: blockId must ONLY be digits (e.g. 55577, 55579) or 'int-' followed by digits (e.g. int-55578). Never use 'task-' prefix!
   defaultBlocks: {
     reward: '55577',
     interstitial: 'int-55578',
-    task: 'task-55579',
+    task: '55579',
   },
   primaryBlockId: '55577',
   defaultBlockId: '55577',
@@ -69,6 +70,20 @@ export function getAdsCooldownStatus(stats: {
 }
 
 /**
+ * Sanitizes blockId to ensure Adsgram SDK compatibility:
+ * Must be pure digits OR start with 'int-' followed by digits.
+ * Automatically strips invalid prefixes like 'task-'.
+ */
+export function sanitizeAdsgramBlockId(raw: string): string {
+  if (!raw) return '55577';
+  const trimmed = String(raw).trim();
+  if (trimmed.startsWith('task-')) {
+    return trimmed.replace(/^task-/, '');
+  }
+  return trimmed;
+}
+
+/**
  * Returns active block ID for specified block type (reward | interstitial | task)
  */
 export function getActiveAdsgramBlockId(type: AdsgramBlockType | string = 'reward'): string {
@@ -76,29 +91,30 @@ export function getActiveAdsgramBlockId(type: AdsgramBlockType | string = 'rewar
   
   if (typeof import.meta !== 'undefined') {
     if (normalizedType === 'reward' && import.meta.env?.VITE_ADSGRAM_REWARD_BLOCK_ID) {
-      return String(import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID).trim();
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID));
     }
     if (normalizedType === 'interstitial' && import.meta.env?.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID) {
-      return String(import.meta.env.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID).trim();
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID));
     }
     if (normalizedType === 'task' && import.meta.env?.VITE_ADSGRAM_TASK_BLOCK_ID) {
-      return String(import.meta.env.VITE_ADSGRAM_TASK_BLOCK_ID).trim();
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_TASK_BLOCK_ID));
     }
     if (import.meta.env?.VITE_ADSGRAM_BLOCK_ID) {
-      return String(import.meta.env.VITE_ADSGRAM_BLOCK_ID).trim();
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_BLOCK_ID));
     }
   }
 
   if (typeof window !== 'undefined') {
     const saved = window.localStorage.getItem(`mimi_custom_adsgram_block_${normalizedType}`);
-    if (saved && saved.trim()) return saved.trim();
+    if (saved && saved.trim()) return sanitizeAdsgramBlockId(saved);
 
     // Fallback legacy key
     const legacy = window.localStorage.getItem('mimi_custom_adsgram_block_id');
-    if (legacy && legacy.trim()) return legacy.trim();
+    if (legacy && legacy.trim()) return sanitizeAdsgramBlockId(legacy);
   }
 
-  return ADSGRAM_CONFIG.defaultBlocks[normalizedType] || ADSGRAM_CONFIG.defaultBlockId;
+  const rawDefault = ADSGRAM_CONFIG.defaultBlocks[normalizedType] || ADSGRAM_CONFIG.defaultBlockId;
+  return sanitizeAdsgramBlockId(rawDefault);
 }
 
 /**
@@ -115,9 +131,9 @@ export function setActiveAdsgramBlockId(
 
   if (maybeId !== undefined) {
     type = (typeOrId === 'interstitial' || typeOrId === 'task') ? typeOrId : 'reward';
-    id = maybeId.trim();
+    id = sanitizeAdsgramBlockId(maybeId);
   } else {
-    id = String(typeOrId || '').trim();
+    id = sanitizeAdsgramBlockId(String(typeOrId || ''));
   }
 
   if (!id) {
@@ -155,7 +171,7 @@ export interface AdWatchResult {
  * Attempts real Adsgram SDK first; falls back to interactive verified video modal if blocked or in browser preview.
  */
 export async function triggerAdsgramAd(customBlockId?: string): Promise<AdWatchResult> {
-  const blockId = customBlockId || getActiveAdsgramBlockId();
+  const blockId = sanitizeAdsgramBlockId(customBlockId || getActiveAdsgramBlockId());
 
   if (typeof window !== 'undefined' && window.Adsgram) {
     try {
@@ -181,4 +197,24 @@ export async function triggerAdsgramAd(customBlockId?: string): Promise<AdWatchR
     tonContributed: ADSGRAM_CONFIG.tonPerAdEstimate,
     message: 'Ad reward verified and routed to DEX Liquidity Pool!',
   };
+}
+
+/**
+ * Trigger auto Adsgram interstitial ad on app launch/open
+ */
+export async function triggerAutoStartupInterstitial(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  const blockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId('interstitial'));
+  if (window.Adsgram) {
+    try {
+      const controller = window.Adsgram.init({ blockId, debug: false });
+      const res = await controller.show();
+      return Boolean(res && res.done);
+    } catch (err) {
+      console.warn('[Auto Interstitial] Notice:', err);
+      return false;
+    }
+  }
+  return false;
 }

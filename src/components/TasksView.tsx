@@ -76,7 +76,7 @@ export const TasksView: React.FC<Props> = ({
   onOpenAdsgram,
   language,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'adsgram' | 'social' | 'partner'>('all');
+  const [filter, setFilter] = useState<'all' | 'adsgram' | 'native' | 'social'>('all');
   const [cooldownAlert, setCooldownAlert] = useState<string | null>(null);
   const [isQuizArenaOpen, setIsQuizArenaOpen] = useState(false);
   const [arenaOpFilter, setArenaOpFilter] = useState<'all' | '+' | '-' | '×' | '÷'>('all');
@@ -129,18 +129,31 @@ export const TasksView: React.FC<Props> = ({
   const mathProgressPercent = Math.round((solvedMathCount / Math.max(1, mathTasksCount)) * 100);
 
   const adsTasksCount = nonMathTasks.filter((t) => t.category === 'adsgram' || t.isAdsgramTask).length;
-  const socialTasksCount = nonMathTasks.filter(
-    (t) => t.category === 'social' || t.category === 'community' || t.iconType === 'discord'
+  const nativeTasksCount = nonMathTasks.filter(
+    (t) =>
+      t.id === 'connect-ton-wallet' ||
+      t.id === 'reach-level-3' ||
+      t.id === 'craft-first-loop' ||
+      t.id === 'play-beat-rush-arcade' ||
+      t.id === 'invite-squad-fren'
   ).length;
-  const partnerTasksCount = nonMathTasks.filter(
-    (t) => t.category === 'partner' || t.subType === 'partner' || t.iconType === 'flame'
+  const socialTasksCount = nonMathTasks.filter(
+    (t) => t.category === 'social' || t.category === 'community' || t.iconType === 'discord' || t.iconType === 'telegram'
   ).length;
 
   const filteredTasks = nonMathTasks.filter((t) => {
     if (filter === 'all') return true;
     if (filter === 'adsgram') return t.category === 'adsgram' || t.isAdsgramTask;
-    if (filter === 'social') return t.category === 'social' || t.category === 'community' || t.iconType === 'discord';
-    if (filter === 'partner') return t.category === 'partner' || t.subType === 'partner' || t.iconType === 'flame';
+    if (filter === 'native') {
+      return (
+        t.id === 'connect-ton-wallet' ||
+        t.id === 'reach-level-3' ||
+        t.id === 'craft-first-loop' ||
+        t.id === 'play-beat-rush-arcade' ||
+        t.id === 'invite-squad-fren'
+      );
+    }
+    if (filter === 'social') return t.category === 'social' || t.category === 'community' || t.iconType === 'discord' || t.iconType === 'telegram';
     return true;
   });
 
@@ -243,9 +256,82 @@ export const TasksView: React.FC<Props> = ({
 
     if (task.isCompleted) return;
 
-    // 1. If Wallet required -> MUST have connected wallet
-    if (task.requiresWallet && !stats.walletAddress) {
-      onOpenWallet();
+    // 1. TON Wallet Connect Native Quest
+    if (task.id === 'connect-ton-wallet' || task.requiresWallet) {
+      if (stats.walletAddress) {
+        onCompleteTask(task.id, task.reward);
+        playClaimRewardSound();
+        triggerHaptic('heavy');
+      } else {
+        onOpenWallet();
+      }
+      return;
+    }
+
+    // 2. Reach Producer Level 3 Quest
+    if (task.id === 'reach-level-3') {
+      if (stats.level >= 3) {
+        onCompleteTask(task.id, task.reward);
+        playClaimRewardSound();
+        triggerHaptic('heavy');
+      } else {
+        setCooldownAlert(
+          language === 'hi'
+            ? `आपका वर्तमान स्तर Level ${stats.level} है। Mimi Making में बीट्स बनाएं और लेवल 3 पर पहुंचें!`
+            : `Current level is Level ${stats.level}. Upgrade gear & craft loops to reach Level 3!`
+        );
+        triggerHaptic('medium');
+      }
+      return;
+    }
+
+    // 3. Craft Sound Loop Quest
+    if (task.id === 'craft-first-loop') {
+      if (stats.totalLoopsCrafted >= 1 || stats.loopMakingActive) {
+        onCompleteTask(task.id, task.reward);
+        playClaimRewardSound();
+        triggerHaptic('heavy');
+      } else {
+        setCooldownAlert(
+          language === 'hi'
+            ? 'Mimi Making में पहले 8-घंटे लूप क्राफ्टिंग सक्रिय करें!'
+            : 'Start 8-hour loop craft session in Mimi Making first!'
+        );
+        triggerHaptic('medium');
+      }
+      return;
+    }
+
+    // 4. Play Mimi Beat Rush Arcade Quest
+    if (task.id === 'play-beat-rush-arcade') {
+      if (stats.beatsStreamed > 0 || (stats.arcadePlaysToday && stats.arcadePlaysToday > 0)) {
+        onCompleteTask(task.id, task.reward);
+        playClaimRewardSound();
+        triggerHaptic('heavy');
+      } else {
+        onOpenArcade();
+      }
+      return;
+    }
+
+    // 5. Invite Fren Quest
+    if (task.id === 'invite-squad-fren') {
+      if (stats.recruitsCount >= 1) {
+        onCompleteTask(task.id, task.reward);
+        playClaimRewardSound();
+        triggerHaptic('heavy');
+      } else {
+        const refLink = `https://t.me/Aperna_Splash_bot/app?startapp=ref_${stats.userId}`;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(refLink).catch(() => {});
+        }
+        setCooldownAlert(
+          language === 'hi'
+            ? 'रेफरल लिंक क्लिपबोर्ड पर कॉपी हो गया! कम से कम 1 दोस्त को जोड़ें।'
+            : 'Referral link copied to clipboard! Invite at least 1 fren to claim.'
+        );
+        triggerHaptic('medium');
+      }
       return;
     }
 
@@ -778,9 +864,9 @@ export const TasksView: React.FC<Props> = ({
                 {[
                   { id: 'all', hi: 'सभी कार्य', en: 'All Tasks', count: nonMathTasks.length },
                   { id: 'adsgram', hi: '📺 स्पॉन्सर एड्स', en: '📺 Adsgram Ads', count: adsTasksCount },
+                  { id: 'native', hi: '⚡ इन-ऐप टास्क', en: '⚡ Native Quests', count: nativeTasksCount },
                   { id: 'arena', hi: '🧮 क्विज एरीना', en: '🧮 Quiz Arena', count: `${solvedMathCount}/${mathTasksCount}` },
-                  { id: 'social', hi: '🌐 कम्युनिटी व सोशल', en: '🌐 Community & Social', count: socialTasksCount },
-                  { id: 'partner', hi: '🤝 पार्टनर बॉट्स', en: '🤝 Partner Bots', count: partnerTasksCount },
+                  { id: 'social', hi: '🌐 कम्युनिटी', en: '🌐 Community', count: socialTasksCount },
                 ].map((tab) => {
                   const isActive = filter === tab.id;
                   return (

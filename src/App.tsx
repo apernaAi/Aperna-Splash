@@ -30,7 +30,7 @@ import { useTonAddress } from '@tonconnect/ui-react';
 import { setMuteState, playClaimRewardSound, triggerHaptic, initBackgroundMusic, isMuted as isMutedEngine, subscribeBgmState, resumeAudioOnGesture } from './utils/audioEngine.ts';
 import { saveStatsWithIntegritySignature, verifyLocalStorageIntegrity, validateHumanTapVelocity } from './utils/securityEngine.ts';
 import { getTodayDateString, syncTasksWithDailyReset } from './utils/dailyTaskService.ts';
-import { ADS_LIMIT_PER_PERIOD, ADS_PERIOD_DURATION_MS, getAdsCooldownStatus } from './utils/adsgramService.ts';
+import { ADS_LIMIT_PER_PERIOD, ADS_PERIOD_DURATION_MS, getAdsCooldownStatus, getActiveAdsgramBlockId, sanitizeAdsgramBlockId } from './utils/adsgramService.ts';
 import {
   syncUserWithCloud,
   handleCloudWalletConnect,
@@ -237,6 +237,7 @@ function createInitialStats(): UserStats {
 }
 
 const DEFAULT_TASKS: AirdropTask[] = [
+  // 1. Adsgram Native Monetization Units (Direct revenue routes to STON.fi DEX LP)
   {
     id: 'adsgram-video-daily',
     category: 'adsgram',
@@ -259,8 +260,8 @@ const DEFAULT_TASKS: AirdropTask[] = [
     subType: 'other',
     title: 'Adsgram इंटरैक्टिव बूस्ट विज्ञापन (+15 $MIMI)',
     titleEn: 'Adsgram Interactive Sponsor Boost (+15 $MIMI)',
-    description: 'फुल-स्क्रीन इंटरैक्टिव स्पॉन्सर एड देखें और 15 $MIMI का अतिरिक्त बोनस पाएं।',
-    descriptionEn: 'View interactive full-screen sponsor boost and claim 15 $MIMI bonus.',
+    description: 'फुल-स्क्रीन इंटरैक्टिव स्पॉन्सर एड देखें और 15 $MIMI का अतिरिक्त बोनस पाएं। (ऐप ओपन पर ऑटो)',
+    descriptionEn: 'View interactive full-screen sponsor boost and claim 15 $MIMI bonus. (Auto on app open)',
     reward: 15,
     iconType: 'adsgram',
     isAdsgramTask: true,
@@ -275,8 +276,8 @@ const DEFAULT_TASKS: AirdropTask[] = [
     subType: 'partner',
     title: 'Adsgram पार्टनर स्पॉन्सर टास्क (+20 $MIMI)',
     titleEn: 'Adsgram Native Partner Campaign (+20 $MIMI)',
-    description: 'पार्टनर एड कैंपेन एक्सप्लोर करें और 20 $MIMI टोकन रिवॉर्ड हासिल करें।',
-    descriptionEn: 'Explore Adsgram native sponsor offer and earn 20 $MIMI token reward.',
+    description: 'पार्टनर एड कैंपेन एक्सप्लोर करें और 20 $MIMI टोकन रिवॉर्ड हासिल करें। (ब्लॉक #55579)',
+    descriptionEn: 'Explore Adsgram native sponsor offer and earn 20 $MIMI token reward. (Block #55579)',
     reward: 20,
     iconType: 'adsgram',
     isAdsgramTask: true,
@@ -285,7 +286,100 @@ const DEFAULT_TASKS: AirdropTask[] = [
     isCompleted: false,
     isDailyRepeatable: true,
   },
+  {
+    id: 'adsgram-music-sponsor',
+    category: 'adsgram',
+    subType: 'partner',
+    title: 'Adsgram Web3 म्यूजिक स्पॉन्सर (+20 $MIMI)',
+    titleEn: 'Adsgram Web3 Music Sponsor Boost (+20 $MIMI)',
+    description: 'वेब3 म्यूजिक स्पॉन्सर कैंपेन देखें और 20 $MIMI तुरंत अनलॉक करें।',
+    descriptionEn: 'Watch Web3 Music sponsor campaign & unlock 20 $MIMI instantly.',
+    reward: 20,
+    iconType: 'adsgram',
+    isAdsgramTask: true,
+    adsgramBlockType: 'task',
+    verificationType: 'ad_watched',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+
+  // 2. Real Native Web3 In-App Quests (True Airdrop Mechanics)
+  {
+    id: 'connect-ton-wallet',
+    category: 'ton',
+    subType: 'other',
+    title: 'TON वॉलेट कनेक्ट करें (+100 $MIMI)',
+    titleEn: 'Connect TON Wallet (+100 $MIMI)',
+    description: 'Tonkeeper या @wallet कनेक्ट करें और तुरंत 100 $MIMI और 8-घंटे लूप क्राफ्ट अनलॉक करें।',
+    descriptionEn: 'Connect Tonkeeper or @wallet to unlock 100 $MIMI and 8-hour loop craft.',
+    reward: 100,
+    iconType: 'wallet',
+    requiresWallet: true,
+    verificationType: 'wallet_connected',
+    isCompleted: false,
+    isDailyRepeatable: false,
+  },
+  {
+    id: 'reach-level-3',
+    category: 'all',
+    subType: 'other',
+    title: 'प्रोड्यूसर लेवल 3 पर पहुंचें (+50 $MIMI)',
+    titleEn: 'Reach Studio Producer Level 3 (+50 $MIMI)',
+    description: 'Mimi Making में बीट्स स्ट्रीम और लूप क्राफ्ट करके लेवल 3 अनलॉक करें।',
+    descriptionEn: 'Craft loops and upgrade studio gear to reach Producer Level 3.',
+    reward: 50,
+    iconType: 'music',
+    verificationType: 'auto',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'craft-first-loop',
+    category: 'all',
+    subType: 'other',
+    title: 'Mimi Studio में लूप क्राफ्ट करें (+35 $MIMI)',
+    titleEn: 'Craft Sound Loops in Studio (+35 $MIMI)',
+    description: '8-घंटे Mimi Making लूप क्राफ्टिंग सक्रिय रखें और संगीत लेयर्स बनाएं।',
+    descriptionEn: 'Keep 8-hour Mimi Making loop active and craft sound layers.',
+    reward: 35,
+    iconType: 'flame',
+    verificationType: 'auto',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'play-beat-rush-arcade',
+    category: 'all',
+    subType: 'other',
+    title: 'मिमी बीट रश आर्केड खेलें (+30 $MIMI)',
+    titleEn: 'Play Mimi Beat Rush Arcade (+30 $MIMI)',
+    description: 'बीट रश में रिदम लेयर्स अनलॉक करें और हाई स्कोर बनाकर टोकन जीतें।',
+    descriptionEn: 'Drop rhythmic beats in Mimi Beat Rush arcade to win bonus tokens.',
+    reward: 30,
+    iconType: 'music',
+    verificationType: 'auto',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
+    id: 'invite-squad-fren',
+    category: 'social',
+    subType: 'other',
+    title: 'एक दोस्त को Mimi Squad में शामिल करें (+50 $MIMI)',
+    titleEn: 'Invite a Fren to Mimi Squad (+50 $MIMI)',
+    description: 'अपने रेफरल लिंक से एक दोस्त को बुलाएं और 10% लाइफटाइम माइनिंग कमीशन पाएं।',
+    descriptionEn: 'Invite a producer friend and earn 10% lifetime mining commission.',
+    reward: 50,
+    iconType: 'users',
+    verificationType: 'auto',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+
+  // 3. Math Quiz Arena 30 Daily Rotation Tasks
   ...MATH_QUIZ_TASKS,
+
+  // 4. Official Community Channels (Genuine Project Links)
   {
     id: 'tg-musicmimi-community',
     category: 'community',
@@ -329,70 +423,6 @@ const DEFAULT_TASKS: AirdropTask[] = [
     reward: 20,
     iconType: 'discord',
     actionUrl: 'https://discord.gg/3hjUXrfVQe',
-    requiredWaitSeconds: 15,
-    verificationType: 'external_confirmed',
-    isCompleted: false,
-    isDailyRepeatable: true,
-  },
-  {
-    id: 'tg-victors-company-bot',
-    category: 'partner',
-    subType: 'partner',
-    title: 'Victors Company बॉट लॉन्च करें (+25 $MIMI)',
-    titleEn: 'Launch Victors Company Bot (+25 $MIMI)',
-    description: 'Victors Company टेलीग्राम बॉट ऐप शुरू करें और 25 $MIMI टोकन अर्जित करें।',
-    descriptionEn: 'Launch Victors Company Telegram Mini App & claim 25 $MIMI reward.',
-    reward: 25,
-    iconType: 'flame',
-    actionUrl: 'https://t.me/VictorsCompanybot/app?startapp=ref_44DA71ECB1',
-    requiredWaitSeconds: 15,
-    verificationType: 'external_confirmed',
-    isCompleted: false,
-    isDailyRepeatable: true,
-  },
-  {
-    id: 'tg-atf-airdrop-bot',
-    category: 'partner',
-    subType: 'partner',
-    title: 'ATF Airdrop बॉट शुरू करें (+25 $MIMI)',
-    titleEn: 'Start ATF Airdrop Bot (+25 $MIMI)',
-    description: 'ATF Airdrop टेलीग्राम बॉट शुरू करें और 25 $MIMI बोनस प्राप्त करें।',
-    descriptionEn: 'Start ATF Airdrop Bot on Telegram and claim 25 $MIMI bonus.',
-    reward: 25,
-    iconType: 'telegram',
-    actionUrl: 'https://t.me/ATF_AIRDROP_bot?start=5155991931',
-    requiredWaitSeconds: 15,
-    verificationType: 'external_confirmed',
-    isCompleted: false,
-    isDailyRepeatable: true,
-  },
-  {
-    id: 'tg-aura-airdrop-wallet',
-    category: 'partner',
-    subType: 'partner',
-    title: 'Aura Airdrop Wallet बॉट शुरू करें (+25 $MIMI)',
-    titleEn: 'Start Aura Airdrop Wallet Bot (+25 $MIMI)',
-    description: 'Aura Airdrop Wallet टेलीग्राम बॉट शुरू करें और 25 $MIMI रिवॉर्ड पाएं।',
-    descriptionEn: 'Launch Aura Airdrop Wallet Bot on Telegram to earn 25 $MIMI.',
-    reward: 25,
-    iconType: 'telegram',
-    actionUrl: 'https://t.me/auraAidropWalletBot?start=5155991931',
-    requiredWaitSeconds: 15,
-    verificationType: 'external_confirmed',
-    isCompleted: false,
-    isDailyRepeatable: true,
-  },
-  {
-    id: 'tg-mininggram-bot',
-    category: 'partner',
-    subType: 'partner',
-    title: 'MiningGRAM बॉट ऐप लॉन्च करें (+25 $MIMI)',
-    titleEn: 'Launch MiningGRAM Bot App (+25 $MIMI)',
-    description: 'MiningGRAM बॉट ऐप में माइनिंग शुरू करें और 25 $MIMI क्लेम करें।',
-    descriptionEn: 'Launch MiningGRAM Bot on Telegram and claim 25 $MIMI reward.',
-    reward: 25,
-    iconType: 'flame',
-    actionUrl: 'https://t.me/MiningGRAM_Bot/mine?startapp=2D9QSU3',
     requiredWaitSeconds: 15,
     verificationType: 'external_confirmed',
     isCompleted: false,
@@ -553,7 +583,7 @@ export default function App() {
 
   const [tasks, setTasks] = useState<AirdropTask[]>(() => {
     try {
-      const saved = localStorage.getItem('music_mimi_tasks_v15_adsgram_triple') || localStorage.getItem('music_mimi_tasks_v12_math_quiz_30') || localStorage.getItem('music_mimi_tasks_v11_math_quiz');
+      const saved = localStorage.getItem('music_mimi_tasks_v16_native_quests') || localStorage.getItem('music_mimi_tasks_v15_adsgram_triple') || localStorage.getItem('music_mimi_tasks_v12_math_quiz_30');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -607,7 +637,7 @@ export default function App() {
   }, [stats]);
 
   useEffect(() => {
-    localStorage.setItem('music_mimi_tasks_v15_adsgram_triple', JSON.stringify(tasks));
+    localStorage.setItem('music_mimi_tasks_v16_native_quests', JSON.stringify(tasks));
   }, [tasks]);
 
   useEffect(() => {
@@ -811,6 +841,55 @@ export default function App() {
       )
     );
   };
+
+  // 📺 Auto Interstitial Ad on App Startup (Real Web3 Mini-App Experience)
+  // When the app opens, automatically trigger Adsgram interstitial ad (int-55578)
+  useEffect(() => {
+    const sessionKey = 'mimi_auto_interstitial_session_opened';
+    if (typeof window === 'undefined' || sessionStorage.getItem(sessionKey)) return;
+
+    // Smooth delay after splash/initial render so Telegram WebApp is fully active
+    const timer = setTimeout(async () => {
+      try {
+        sessionStorage.setItem(sessionKey, 'true');
+        const blockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId('interstitial'));
+
+        // Intercept and suppress Telegram WebApp raw popups for ad moderation messages
+        if ((window as any).Telegram?.WebApp?.showAlert) {
+          const origShowAlert = (window as any).Telegram.WebApp.showAlert;
+          (window as any).Telegram.WebApp.showAlert = (params: any, cb?: () => void) => {
+            const msg = typeof params === 'string' ? params : params?.message || '';
+            if (
+              msg.includes('Adsgram') ||
+              msg.includes('Clause 11') ||
+              msg.includes('not active') ||
+              msg.includes('declined') ||
+              msg.includes('partner.adsgram.ai') ||
+              msg.includes('blockId')
+            ) {
+              console.warn('[Auto Interstitial] Suppressed banner notice:', msg);
+              if (cb) cb();
+              return;
+            }
+            origShowAlert.call((window as any).Telegram.WebApp, params, cb);
+          };
+        }
+
+        if (window.Adsgram) {
+          console.log('[Auto Interstitial] Triggering Adsgram interstitial on launch with blockId:', blockId);
+          const adController = window.Adsgram.init({ blockId, debug: false });
+          const res = await adController.show();
+          if (res && res.done) {
+            handleRewardAdsgram(15, 0.015, 'adsgram-interstitial-daily');
+          }
+        }
+      } catch (err) {
+        console.warn('[Auto Interstitial] Notice:', err);
+      }
+    }, 1800);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Task Completion Handler
   const handleCompleteTask = (taskId: string, reward: number) => {
