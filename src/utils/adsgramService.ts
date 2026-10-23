@@ -167,13 +167,38 @@ export interface AdWatchResult {
 }
 
 /**
+ * Checks if running inside Telegram WebApp environment with launch parameters.
+ * Adsgram SDK requires Telegram launch parameters (initData or tgWebAppData).
+ */
+export function isTelegramEnvironment(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg?.initData && typeof tg.initData === 'string' && tg.initData.trim().length > 5) {
+      return true;
+    }
+    const search = window.location.search;
+    const hash = window.location.hash;
+    if (
+      search.includes('tgWebAppData') ||
+      hash.includes('tgWebAppData') ||
+      search.includes('tgWebAppPlatform') ||
+      hash.includes('tgWebAppPlatform')
+    ) {
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+/**
  * Trigger Adsgram Rewarded Ad
- * Attempts real Adsgram SDK first; falls back to interactive verified video modal if blocked or in browser preview.
+ * Attempts real Adsgram SDK if inside Telegram; falls back cleanly to interactive verified video modal.
  */
 export async function triggerAdsgramAd(customBlockId?: string): Promise<AdWatchResult> {
   const blockId = sanitizeAdsgramBlockId(customBlockId || getActiveAdsgramBlockId());
 
-  if (typeof window !== 'undefined' && window.Adsgram) {
+  if (typeof window !== 'undefined' && window.Adsgram && isTelegramEnvironment()) {
     try {
       const adController = window.Adsgram.init({ blockId, debug: false });
       const res = await adController.show();
@@ -201,9 +226,10 @@ export async function triggerAdsgramAd(customBlockId?: string): Promise<AdWatchR
 
 /**
  * Trigger auto Adsgram interstitial ad on app launch/open
+ * Only runs if inside Telegram environment to prevent launch parameter errors in preview.
  */
 export async function triggerAutoStartupInterstitial(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined' || !isTelegramEnvironment()) return false;
 
   const blockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId('interstitial'));
   if (window.Adsgram) {

@@ -10,7 +10,7 @@ import {
   Zap
 } from 'lucide-react';
 import { UserStats, Language } from '../types/airdrop.ts';
-import { ADSGRAM_CONFIG, getActiveAdsgramBlockId, setActiveAdsgramBlockId, sanitizeAdsgramBlockId } from '../utils/adsgramService.ts';
+import { ADSGRAM_CONFIG, getActiveAdsgramBlockId, setActiveAdsgramBlockId, sanitizeAdsgramBlockId, isTelegramEnvironment } from '../utils/adsgramService.ts';
 import { playClaimRewardSound, playTapSound, triggerHaptic } from '../utils/audioEngine.ts';
 
 interface Props {
@@ -86,7 +86,8 @@ export const AdsgramRewardModal: React.FC<Props> = ({
           msg.includes('Clause 11') ||
           msg.includes('declined') ||
           msg.includes('Adsgram') ||
-          msg.includes('blockId')
+          msg.includes('blockId') ||
+          msg.includes('launch parameters')
         ) {
           console.warn('[Adsgram] Suppressed ad network message:', msg);
           if (callback) callback();
@@ -98,8 +99,8 @@ export const AdsgramRewardModal: React.FC<Props> = ({
 
     const currentBlockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId(blockType));
 
-    // Attempt native Adsgram SDK if initialized
-    if (typeof window !== 'undefined' && window.Adsgram) {
+    // Attempt native Adsgram SDK only if running inside real Telegram environment with launch parameters
+    if (typeof window !== 'undefined' && window.Adsgram && isTelegramEnvironment()) {
       try {
         const adController = window.Adsgram.init({
           blockId: currentBlockId,

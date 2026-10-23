@@ -30,7 +30,7 @@ import { useTonAddress } from '@tonconnect/ui-react';
 import { setMuteState, playClaimRewardSound, triggerHaptic, initBackgroundMusic, isMuted as isMutedEngine, subscribeBgmState, resumeAudioOnGesture } from './utils/audioEngine.ts';
 import { saveStatsWithIntegritySignature, verifyLocalStorageIntegrity, validateHumanTapVelocity } from './utils/securityEngine.ts';
 import { getTodayDateString, syncTasksWithDailyReset } from './utils/dailyTaskService.ts';
-import { ADS_LIMIT_PER_PERIOD, ADS_PERIOD_DURATION_MS, getAdsCooldownStatus, getActiveAdsgramBlockId, sanitizeAdsgramBlockId } from './utils/adsgramService.ts';
+import { ADS_LIMIT_PER_PERIOD, ADS_PERIOD_DURATION_MS, getAdsCooldownStatus, getActiveAdsgramBlockId, sanitizeAdsgramBlockId, isTelegramEnvironment } from './utils/adsgramService.ts';
 import {
   syncUserWithCloud,
   handleCloudWalletConnect,
@@ -852,6 +852,13 @@ export default function App() {
     const timer = setTimeout(async () => {
       try {
         sessionStorage.setItem(sessionKey, 'true');
+
+        // Only invoke native Adsgram if running inside real Telegram environment with launch parameters
+        if (!isTelegramEnvironment()) {
+          console.log('[Auto Interstitial] Preview mode detected; native interstitial will run inside Telegram Mini App.');
+          return;
+        }
+
         const blockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId('interstitial'));
 
         // Intercept and suppress Telegram WebApp raw popups for ad moderation messages
@@ -865,7 +872,8 @@ export default function App() {
               msg.includes('not active') ||
               msg.includes('declined') ||
               msg.includes('partner.adsgram.ai') ||
-              msg.includes('blockId')
+              msg.includes('blockId') ||
+              msg.includes('launch parameters')
             ) {
               console.warn('[Auto Interstitial] Suppressed banner notice:', msg);
               if (cb) cb();
@@ -878,10 +886,16 @@ export default function App() {
         if (window.Adsgram) {
           console.log('[Auto Interstitial] Triggering Adsgram interstitial on launch with blockId:', blockId);
           const adController = window.Adsgram.init({ blockId, debug: false });
-          const res = await adController.show();
-          if (res && res.done) {
-            handleRewardAdsgram(15, 0.015, 'adsgram-interstitial-daily');
-          }
+          adController
+            .show()
+            .then((res) => {
+              if (res && res.done) {
+                handleRewardAdsgram(15, 0.015, 'adsgram-interstitial-daily');
+              }
+            })
+            .catch((err) => {
+              console.warn('[Auto Interstitial] Handled ad rejection:', err);
+            });
         }
       } catch (err) {
         console.warn('[Auto Interstitial] Notice:', err);
