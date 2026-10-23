@@ -1,40 +1,87 @@
-// Adsgram Rewarded Video Advertising Service & DEX Liquidity Router
+// Adsgram Multi-Block Advertising Service & DEX Liquidity Router
+// Supports 3 block types: Reward, Interstitial, Task
 // Routes all ad revenue directly to Owner Wallet: UQCq-PboNEs9iF9VaUIGt2PxVuUXcykeq0R0zcBg1nchEXAF
 
+export type AdsgramBlockType = 'reward' | 'interstitial' | 'task';
+
 export const ADSGRAM_CONFIG = {
-  // Official Owner / Revenue Wallet Address (configurable via VITE_OWNER_REVENUE_WALLET)
+  // Official Owner / Revenue Wallet Address
   ownerRevenueWallet: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OWNER_REVENUE_WALLET) || 'UQCq-PboNEs9iF9VaUIGt2PxVuUXcykeq0R0zcBg1nchEXAF',
-  // Active Ad Unit ID (Clean Approved Unit ID: 53441)
+  // Default clean approved block IDs (can be overridden dynamically or via .env)
+  defaultBlocks: {
+    reward: '53441',
+    interstitial: '53441',
+    task: '53441',
+  },
   primaryBlockId: '53441',
   defaultBlockId: '53441',
-  // Target DEX Liquidity Pools
   targetDexPools: ['STON.fi', 'DeDust.io'] as const,
-  // Est TON value contributed to DEX LP per ad impression (~0.015 TON)
   tonPerAdEstimate: 0.015,
   payoutRoutingNotice: 'All ad network payouts generated from Adsgram are routed directly to Owner Wallet (UQCq-PboNEs9...). 100% of this revenue is reserved to seed the $MIMI / TON Liquidity Pool on STON.fi & DeDust.',
   payoutRoutingNoticeHi: 'Adsgram से मिलने वाला सारा विज्ञापन राजस्व सीधे ओनर वॉलेट (UQCq-PboNEs9...) में जाता है और DEX (STON.fi / DeDust) पर $MIMI लिक्विडिटी पूल को फंड करने के लिए उपयोग किया जाता है।',
 };
 
 /**
- * Returns current active block ID, checking Vercel env var first, then localStorage, then default 53441
+ * Returns active block ID for specified block type (reward | interstitial | task)
  */
-export function getActiveAdsgramBlockId(): string {
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADSGRAM_BLOCK_ID) {
-    return String(import.meta.env.VITE_ADSGRAM_BLOCK_ID).trim();
+export function getActiveAdsgramBlockId(type: AdsgramBlockType | string = 'reward'): string {
+  const normalizedType = (type === 'interstitial' || type === 'task') ? type : 'reward';
+  
+  if (typeof import.meta !== 'undefined') {
+    if (normalizedType === 'reward' && import.meta.env?.VITE_ADSGRAM_REWARD_BLOCK_ID) {
+      return String(import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID).trim();
+    }
+    if (normalizedType === 'interstitial' && import.meta.env?.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID) {
+      return String(import.meta.env.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID).trim();
+    }
+    if (normalizedType === 'task' && import.meta.env?.VITE_ADSGRAM_TASK_BLOCK_ID) {
+      return String(import.meta.env.VITE_ADSGRAM_TASK_BLOCK_ID).trim();
+    }
+    if (import.meta.env?.VITE_ADSGRAM_BLOCK_ID) {
+      return String(import.meta.env.VITE_ADSGRAM_BLOCK_ID).trim();
+    }
   }
+
   if (typeof window !== 'undefined') {
-    const saved = window.localStorage.getItem('mimi_custom_adsgram_block_id');
+    const saved = window.localStorage.getItem(`mimi_custom_adsgram_block_${normalizedType}`);
     if (saved && saved.trim()) return saved.trim();
+
+    // Fallback legacy key
+    const legacy = window.localStorage.getItem('mimi_custom_adsgram_block_id');
+    if (legacy && legacy.trim()) return legacy.trim();
   }
-  return ADSGRAM_CONFIG.defaultBlockId;
+
+  return ADSGRAM_CONFIG.defaultBlocks[normalizedType] || ADSGRAM_CONFIG.defaultBlockId;
 }
 
-export function setActiveAdsgramBlockId(newBlockId: string): void {
-  if (typeof window !== 'undefined') {
-    if (!newBlockId || !newBlockId.trim()) {
+/**
+ * Update block ID for a specific block type (or reward by default)
+ */
+export function setActiveAdsgramBlockId(
+  typeOrId: AdsgramBlockType | string,
+  maybeId?: string
+): void {
+  if (typeof window === 'undefined') return;
+
+  let type: AdsgramBlockType = 'reward';
+  let id = '';
+
+  if (maybeId !== undefined) {
+    type = (typeOrId === 'interstitial' || typeOrId === 'task') ? typeOrId : 'reward';
+    id = maybeId.trim();
+  } else {
+    id = String(typeOrId || '').trim();
+  }
+
+  if (!id) {
+    window.localStorage.removeItem(`mimi_custom_adsgram_block_${type}`);
+    if (type === 'reward') {
       window.localStorage.removeItem('mimi_custom_adsgram_block_id');
-    } else {
-      window.localStorage.setItem('mimi_custom_adsgram_block_id', newBlockId.trim());
+    }
+  } else {
+    window.localStorage.setItem(`mimi_custom_adsgram_block_${type}`, id);
+    if (type === 'reward') {
+      window.localStorage.setItem('mimi_custom_adsgram_block_id', id);
     }
   }
 }

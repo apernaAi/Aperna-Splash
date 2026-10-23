@@ -35,8 +35,11 @@ export const AdsgramRewardModal: React.FC<Props> = ({
   const [isFinished, setIsFinished] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
   const [isEditingBlockId, setIsEditingBlockId] = useState(false);
-  const [currentBlockId, setCurrentBlockId] = useState(() => getActiveAdsgramBlockId());
-  const [blockInput, setBlockInput] = useState(() => getActiveAdsgramBlockId());
+  const [blockInputs, setBlockInputs] = useState(() => ({
+    reward: getActiveAdsgramBlockId('reward'),
+    interstitial: getActiveAdsgramBlockId('interstitial'),
+    task: getActiveAdsgramBlockId('task'),
+  }));
 
   // Reset state on open
   useEffect(() => {
@@ -45,9 +48,11 @@ export const AdsgramRewardModal: React.FC<Props> = ({
     setIsFinished(false);
     setIsClaimed(false);
     setIsEditingBlockId(false);
-    const active = getActiveAdsgramBlockId();
-    setCurrentBlockId(active);
-    setBlockInput(active);
+    setBlockInputs({
+      reward: getActiveAdsgramBlockId('reward'),
+      interstitial: getActiveAdsgramBlockId('interstitial'),
+      task: getActiveAdsgramBlockId('task'),
+    });
   }, [isOpen]);
 
   // Countdown timer when video is playing
@@ -300,38 +305,75 @@ export const AdsgramRewardModal: React.FC<Props> = ({
         {/* Ad Network & Liquidity Transparency Badge & Block ID Selector */}
         <div className="pt-2 text-center border-t border-cyan-500/15">
           {isEditingBlockId ? (
-            <div className="p-2.5 rounded-2xl bg-black/60 border border-cyan-400/50 space-y-2 text-left animate-fadeIn">
-              <label className="text-[10px] font-mono font-bold text-cyan-300 block">
-                {language === 'hi' ? 'कस्टम Adsgram Block ID दर्ज करें:' : 'Enter Custom Adsgram Block ID:'}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={blockInput}
-                  onChange={(e) => setBlockInput(e.target.value)}
-                  placeholder="e.g. 53441"
-                  className="w-full bg-[#030d22] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    playTapSound();
-                    setActiveAdsgramBlockId(blockInput.trim());
-                    setCurrentBlockId(getActiveAdsgramBlockId());
-                    setIsEditingBlockId(false);
-                  }}
-                  className="px-3 py-1 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs cursor-pointer"
-                >
-                  Save
-                </button>
+            <div className="p-3 rounded-2xl bg-black/75 border border-cyan-400/50 space-y-2.5 text-left animate-fadeIn">
+              <div className="flex items-center justify-between pb-1 border-b border-cyan-500/20">
+                <span className="text-[11px] font-mono font-bold text-cyan-300">
+                  {language === 'hi' ? 'Adsgram के 3 Block IDs सेटअप:' : 'Configure 3 Adsgram Block IDs:'}
+                </span>
                 <button
                   type="button"
                   onClick={() => setIsEditingBlockId(false)}
-                  className="px-2 py-1 rounded-xl bg-white/10 text-cyan-200 text-xs cursor-pointer"
+                  className="p-1 rounded-full bg-white/10 text-cyan-200 text-xs cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
+
+              {/* 1. Reward Video ID */}
+              <div>
+                <label className="text-[9px] font-mono text-cyan-200/80 block mb-0.5">
+                  1. Reward Video Block ID:
+                </label>
+                <input
+                  type="text"
+                  value={blockInputs.reward}
+                  onChange={(e) => setBlockInputs((prev) => ({ ...prev, reward: e.target.value }))}
+                  placeholder="e.g. 53441"
+                  className="w-full bg-[#030d22] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              {/* 2. Interstitial ID */}
+              <div>
+                <label className="text-[9px] font-mono text-cyan-200/80 block mb-0.5">
+                  2. Interstitial Block ID:
+                </label>
+                <input
+                  type="text"
+                  value={blockInputs.interstitial}
+                  onChange={(e) => setBlockInputs((prev) => ({ ...prev, interstitial: e.target.value }))}
+                  placeholder="e.g. 53441"
+                  className="w-full bg-[#030d22] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              {/* 3. Task ID */}
+              <div>
+                <label className="text-[9px] font-mono text-cyan-200/80 block mb-0.5">
+                  3. Task Block ID:
+                </label>
+                <input
+                  type="text"
+                  value={blockInputs.task}
+                  onChange={(e) => setBlockInputs((prev) => ({ ...prev, task: e.target.value }))}
+                  placeholder="e.g. 53441"
+                  className="w-full bg-[#030d22] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playTapSound();
+                  setActiveAdsgramBlockId('reward', blockInputs.reward.trim());
+                  setActiveAdsgramBlockId('interstitial', blockInputs.interstitial.trim());
+                  setActiveAdsgramBlockId('task', blockInputs.task.trim());
+                  setIsEditingBlockId(false);
+                }}
+                className="w-full py-1.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-xs cursor-pointer shadow-md"
+              >
+                Save All 3 Block IDs ✓
+              </button>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1">
@@ -342,12 +384,12 @@ export const AdsgramRewardModal: React.FC<Props> = ({
                   setIsEditingBlockId(true);
                 }}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[10px] text-cyan-300 font-mono hover:border-cyan-400 transition-colors cursor-pointer"
-                title="Tap to change Adsgram Block ID"
+                title="Tap to change Adsgram Block IDs"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Adsgram Unit #{currentBlockId}</span>
+                <span>Adsgram Units (Reward: #{blockInputs.reward})</span>
                 <span className="text-cyan-600">|</span>
-                <span className="text-cyan-400 underline">Edit ID ✎</span>
+                <span className="text-cyan-400 underline">3 Block IDs ✎</span>
               </button>
               <span className="text-[9px] text-cyan-300/60 font-mono">
                 100% Ad Revenue routes to STON.fi DEX Pool
