@@ -105,9 +105,11 @@ export interface UserStats {
   maxEnergy: number;
   hasClaimedWelcome: boolean;
   
-  // Adsgram Revenue & DEX Liquidity Contributions
+  // Adsgram Revenue & DEX Liquidity Contributions & 8-Hour Cooldown (10 ads max per 8h)
   adsWatchedCount?: number;
   liquidityContributedTon?: number;
+  adsWatchedThisPeriod?: number; // 0 to 10
+  adsPeriodStartTime?: number | null; // ms timestamp of current 8h window
 
   // Arcade / Beat Rush Daily Limits
   arcadePlaysToday?: number;
@@ -140,6 +142,7 @@ export interface AirdropTask {
   isCompleted: boolean;
   requiresWallet?: boolean;
   isAdsgramTask?: boolean;
+  adsgramBlockType?: 'reward' | 'interstitial' | 'task';
   lpBoostTon?: number;
   verificationType?: 'ad_watched' | 'wallet_connected' | 'external_confirmed' | 'auto';
   isStarted?: boolean;

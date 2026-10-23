@@ -21,6 +21,53 @@ export const ADSGRAM_CONFIG = {
   payoutRoutingNoticeHi: 'Adsgram से मिलने वाला सारा विज्ञापन राजस्व सीधे ओनर वॉलेट (UQCq-PboNEs9...) में जाता है और DEX (STON.fi / DeDust) पर $MIMI लिक्विडिटी पूल को फंड करने के लिए उपयोग किया जाता है।',
 };
 
+// 8-Hour Ad Watching Rules: Max 10 ads per 8 hours
+export const ADS_LIMIT_PER_PERIOD = 10;
+export const ADS_PERIOD_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours in ms
+
+export interface AdsCooldownStatus {
+  adsRemaining: number;
+  canWatch: boolean;
+  msRemaining: number;
+  formattedCooldown: string;
+  adsWatchedThisPeriod: number;
+}
+
+export function getAdsCooldownStatus(stats: {
+  adsWatchedThisPeriod?: number;
+  adsPeriodStartTime?: number | null;
+}): AdsCooldownStatus {
+  const now = Date.now();
+  const startTime = stats.adsPeriodStartTime;
+
+  // If no period started or 8 hours have passed, window is fresh
+  if (!startTime || now - startTime >= ADS_PERIOD_DURATION_MS) {
+    return {
+      adsRemaining: ADS_LIMIT_PER_PERIOD,
+      canWatch: true,
+      msRemaining: 0,
+      formattedCooldown: '',
+      adsWatchedThisPeriod: 0,
+    };
+  }
+
+  const watched = stats.adsWatchedThisPeriod || 0;
+  const adsRemaining = Math.max(0, ADS_LIMIT_PER_PERIOD - watched);
+  const msRemaining = Math.max(0, ADS_PERIOD_DURATION_MS - (now - startTime));
+  const hours = Math.floor(msRemaining / (1000 * 60 * 60));
+  const mins = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  const secs = Math.floor((msRemaining % (1000 * 60)) / 1000);
+  const formattedCooldown = `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+
+  return {
+    adsRemaining,
+    canWatch: adsRemaining > 0,
+    msRemaining,
+    formattedCooldown,
+    adsWatchedThisPeriod: watched,
+  };
+}
+
 /**
  * Returns active block ID for specified block type (reward | interstitial | task)
  */

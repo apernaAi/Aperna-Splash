@@ -30,6 +30,7 @@ import { useTonAddress } from '@tonconnect/ui-react';
 import { setMuteState, playClaimRewardSound, triggerHaptic, initBackgroundMusic, isMuted as isMutedEngine, subscribeBgmState, resumeAudioOnGesture } from './utils/audioEngine.ts';
 import { saveStatsWithIntegritySignature, verifyLocalStorageIntegrity, validateHumanTapVelocity } from './utils/securityEngine.ts';
 import { getTodayDateString, syncTasksWithDailyReset } from './utils/dailyTaskService.ts';
+import { ADS_LIMIT_PER_PERIOD, ADS_PERIOD_DURATION_MS, getAdsCooldownStatus } from './utils/adsgramService.ts';
 import {
   syncUserWithCloud,
   handleCloudWalletConnect,
@@ -236,7 +237,6 @@ function createInitialStats(): UserStats {
 }
 
 const DEFAULT_TASKS: AirdropTask[] = [
-  ...MATH_QUIZ_TASKS,
   {
     id: 'adsgram-video-daily',
     category: 'adsgram',
@@ -248,6 +248,7 @@ const DEFAULT_TASKS: AirdropTask[] = [
     reward: 15,
     iconType: 'adsgram',
     isAdsgramTask: true,
+    adsgramBlockType: 'reward',
     verificationType: 'ad_watched',
     isCompleted: false,
     isDailyRepeatable: true,
@@ -263,6 +264,7 @@ const DEFAULT_TASKS: AirdropTask[] = [
     reward: 15,
     iconType: 'adsgram',
     isAdsgramTask: true,
+    adsgramBlockType: 'interstitial',
     verificationType: 'ad_watched',
     isCompleted: false,
     isDailyRepeatable: true,
@@ -278,10 +280,12 @@ const DEFAULT_TASKS: AirdropTask[] = [
     reward: 20,
     iconType: 'adsgram',
     isAdsgramTask: true,
+    adsgramBlockType: 'task',
     verificationType: 'ad_watched',
     isCompleted: false,
     isDailyRepeatable: true,
   },
+  ...MATH_QUIZ_TASKS,
   {
     id: 'tg-musicmimi-community',
     category: 'community',
@@ -549,7 +553,7 @@ export default function App() {
 
   const [tasks, setTasks] = useState<AirdropTask[]>(() => {
     try {
-      const saved = localStorage.getItem('music_mimi_tasks_v12_math_quiz_30') || localStorage.getItem('music_mimi_tasks_v11_math_quiz') || localStorage.getItem('music_mimi_tasks_v10_partners');
+      const saved = localStorage.getItem('music_mimi_tasks_v15_adsgram_triple') || localStorage.getItem('music_mimi_tasks_v12_math_quiz_30') || localStorage.getItem('music_mimi_tasks_v11_math_quiz');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -603,7 +607,7 @@ export default function App() {
   }, [stats]);
 
   useEffect(() => {
-    localStorage.setItem('music_mimi_tasks_v12_math_quiz_30', JSON.stringify(tasks));
+    localStorage.setItem('music_mimi_tasks_v15_adsgram_triple', JSON.stringify(tasks));
   }, [tasks]);
 
   useEffect(() => {
@@ -761,13 +765,20 @@ export default function App() {
     });
   };
 
-  // Rewarded Adsgram Ad Completion handler
+  // Rewarded Adsgram Ad Completion handler (Max 10 ads per 8 hours)
   const handleRewardAdsgram = (mimiReward: number, tonContributed: number, specificTaskId?: string) => {
     const tapCheck = validateHumanTapVelocity();
     if (!tapCheck.isAllowed) {
       console.warn('Z+ Rate limit triggered on reward');
       return;
     }
+
+    const now = Date.now();
+    const periodStart = stats.adsPeriodStartTime;
+    const isFresh = !periodStart || now - periodStart >= ADS_PERIOD_DURATION_MS;
+    const nextPeriodStart = isFresh ? now : periodStart;
+    const nextWatchedThisPeriod = isFresh ? 1 : Math.min(ADS_LIMIT_PER_PERIOD, (stats.adsWatchedThisPeriod || 0) + 1);
+
     const newInApp = Number((stats.inAppBalance + mimiReward).toFixed(2));
     const newBalance = Number((stats.balance + mimiReward).toFixed(2));
     const newAdsCount = (stats.adsWatchedCount || 0) + 1;
@@ -778,6 +789,8 @@ export default function App() {
       inAppBalance: newInApp,
       balance: newBalance,
       adsWatchedCount: newAdsCount,
+      adsWatchedThisPeriod: nextWatchedThisPeriod,
+      adsPeriodStartTime: nextPeriodStart,
       liquidityContributedTon: newTonContributed,
     }));
     creditReferralCommission(stats.userId, mimiReward, 'Adsgram').catch(console.error);
@@ -787,7 +800,7 @@ export default function App() {
     const todayStr = getTodayDateString();
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === targetTaskId || (!specificTaskId && (t.id === 'adsgram-video-daily' || t.isAdsgramTask))
+        t.id === targetTaskId || (!specificTaskId && t.id === 'adsgram-video-daily')
           ? {
               ...t,
               isCompleted: true,
