@@ -23,8 +23,6 @@ export const ConnectWalletModal: React.FC<Props> = ({
   currentAddress,
   language,
 }) => {
-  if (!isOpen) return null;
-
   const [tonConnectUI] = useTonConnectUI();
   const rawWallet = useTonWallet();
   const friendlyAddress = useTonAddress();
@@ -38,13 +36,13 @@ export const ConnectWalletModal: React.FC<Props> = ({
 
   // Sync if TON Connect connects a real wallet
   useEffect(() => {
-    if (friendlyAddress && friendlyAddress !== currentAddress) {
+    if (isOpen && friendlyAddress && friendlyAddress !== currentAddress) {
       const providerName = rawWallet?.device?.appName || 'Tonkeeper / @wallet';
       onConnect(friendlyAddress, providerName);
       playClaimRewardSound();
       triggerHaptic('heavy');
     }
-  }, [friendlyAddress, rawWallet, currentAddress, onConnect]);
+  }, [isOpen, friendlyAddress, rawWallet, currentAddress, onConnect]);
 
   const handleOpenTonConnect = async () => {
     playTapSound();
@@ -101,6 +99,8 @@ export const ConnectWalletModal: React.FC<Props> = ({
     setShowSwitchView(false);
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/90 backdrop-blur-2xl animate-fadeIn select-none">

@@ -19,7 +19,6 @@ import {
 import { useTonAddress, useTonWallet } from '@tonconnect/ui-react';
 import { UserStats, Language } from '../types/airdrop.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
-import { TelegramIcon } from './TelegramIcon.tsx';
 import {
   TON_CONFIG,
   getTonscanTxUrl,
@@ -45,7 +44,6 @@ export const AirdropWalletView: React.FC<Props> = ({
 }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
-  const [withdrawNotice, setWithdrawNotice] = useState<string | null>(null);
   const [realTonBalance, setRealTonBalance] = useState<number>(0);
   const [isLoadingTonBalance, setIsLoadingTonBalance] = useState(false);
 
@@ -103,11 +101,8 @@ export const AirdropWalletView: React.FC<Props> = ({
       return;
     }
     if (stats.inAppBalance <= 0) {
-      setWithdrawNotice(language === 'hi' ? 'कोई अनक्लेम्ड $MIMI बैलेंस उपलब्ध नहीं है!' : 'No $MIMI balance available to claim!');
-      setTimeout(() => setWithdrawNotice(null), 4000);
       return;
     }
-    setWithdrawNotice(null);
     playClaimRewardSound();
     const fakeTx = `ton_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const claimAmt = stats.inAppBalance;
@@ -127,7 +122,7 @@ export const AirdropWalletView: React.FC<Props> = ({
   const realMinedTokens = Number((stats.inAppBalance || 0).toFixed(2));
 
   return (
-    <div className="w-full space-y-4 px-4 pt-1 pb-36 text-white">
+    <div className="w-full space-y-4 px-4 pt-1 pb-24 text-white">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -265,92 +260,45 @@ export const AirdropWalletView: React.FC<Props> = ({
                 : (language === 'hi' ? 'कनेक्ट करें' : 'Connect')}
             </button>
           </div>
-
-          {/* Airdrop Distribution & DEX Listing Text + Official Channel Button */}
-          {effectiveAddress && (
-            <div className="mt-3 pt-3 border-t border-cyan-400/20 flex flex-col gap-2 animate-fadeIn">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-950/70 border border-cyan-400/30 text-cyan-100">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
-                <span className="text-xs font-mono font-bold tracking-tight">
-                  Airdrop Distribution &amp; DEX Listing: 22 January 2027 (Coming Soon)
-                </span>
-              </div>
-              <a
-                href="https://t.me/musicmimi_community"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0088cc] via-[#0099ee] to-[#00aaff] hover:from-[#0077bb] hover:to-[#0088cc] text-white font-extrabold text-xs shadow-[0_0_15px_rgba(0,153,238,0.4)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <TelegramIcon className="w-4 h-4 fill-white shrink-0" />
-                <span>Join Official Channel for Updates</span>
-              </a>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* 2. DEX LISTING & TOKEN CLAIM ACTION CARD */}
-      <div className="p-4 rounded-3xl bg-gradient-to-br from-[#06183e] via-[#041230] to-[#020b1f] border border-cyan-400/40 shadow-lg space-y-3">
+      {/* 2. OFFICIAL USER NOTICE ON DEX LISTING & REAL REWARDS */}
+      <div className="p-4 rounded-3xl bg-gradient-to-br from-cyan-950/80 via-[#031d45] to-[#020e26] border-2 border-cyan-400/50 shadow-[0_8px_30px_rgba(0,180,255,0.2)] space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+            <div className="w-7 h-7 rounded-xl bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
               <Sparkles className="w-4 h-4" />
             </div>
-            <div>
-              <span className="text-xs font-black text-white block">
-                {language === 'hi' ? 'DEX टोकन क्लेम' : 'DEX Listing & Claim'}
-              </span>
-              <span className="text-[10px] text-cyan-300/80 font-mono">
-                DeDust / STON.fi · TEP-74 Jetton
-              </span>
-            </div>
+            <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wide">
+              {language === 'hi' ? 'आधिकारिक DEX क्लेम सूचना' : 'Official DEX Claim Notice'}
+            </span>
           </div>
-          
+          <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-400/30">
+            DeDust / STON.fi
+          </span>
+        </div>
+
+        <p className="text-xs text-cyan-100/95 leading-relaxed italic bg-black/30 p-3 rounded-2xl border border-cyan-400/20">
+          "{language === 'hi' ? TON_CONFIG.dexListingNoticeHi : TON_CONFIG.dexListingNotice}"
+        </p>
+
+        <div className="flex items-center justify-between pt-1 text-[11px] font-mono">
+          <span className="text-cyan-300/80">
+            {language === 'hi' ? 'टोकन मानक:' : 'Standard:'} <strong className="text-white">{TON_CONFIG.standard}</strong>
+          </span>
           <button
             onClick={() => {
               if (onOpenClaimModal) onOpenClaimModal();
               else handleWithdrawToTon();
             }}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 hover:from-cyan-300 hover:to-sky-200 text-slate-950 font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="text-cyan-300 hover:text-white underline font-bold flex items-center gap-1 cursor-pointer"
           >
-            <span>{language === 'hi' ? 'दावा करें' : 'Claim Tokens'}</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-950" />
+            <span>{language === 'hi' ? 'क्लेम डैशबोर्ड खोलें' : 'Open Claim Portal'}</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         </div>
-
-        <p className="text-[11px] text-slate-300 leading-relaxed bg-black/40 p-2.5 rounded-xl border border-cyan-500/20">
-          {language === 'hi'
-            ? 'आपके द्वारा माइन किए गए सभी $MIMI टोकन सुरक्षित हैं। DEX लिस्टिंग पर आप इन्हें सीधे अपने कनेक्टेड TON वॉलेट में क्लेम कर सकेंगे।'
-            : 'All mined $MIMI tokens are verified & safe. Upon official DEX listing, you can claim them directly into your connected TON wallet.'}
-        </p>
-
-        {/* AdsGram Compliance Banner: Airdrop Distribution Schedule */}
-        <div className="p-3 rounded-2xl bg-cyan-950/60 border border-cyan-400/30 space-y-2">
-          <div className="flex items-center gap-2 text-cyan-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="text-xs font-mono font-bold text-white tracking-tight">
-              Airdrop Distribution &amp; DEX Listing: 22 January 2027 (Coming Soon)
-            </span>
-          </div>
-          <a
-            href="https://t.me/musicmimi_community"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2 px-3 rounded-xl bg-[#0088cc] hover:bg-[#0077bb] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
-          >
-            <TelegramIcon className="w-3.5 h-3.5 fill-white shrink-0" />
-            <span>Join Official Channel for Updates</span>
-          </a>
-        </div>
       </div>
-
-      {/* Insufficient balance notice */}
-      {withdrawNotice && (
-        <div className="w-full p-3.5 rounded-2xl bg-amber-950/70 border border-amber-400/50 text-amber-200 text-xs font-mono flex items-center gap-2 animate-fadeIn">
-          <span>⚠️</span>
-          <span>{withdrawNotice}</span>
-        </div>
-      )}
 
       {/* Quick Action: Transfer / Claim notification */}
       {withdrawSuccess && (

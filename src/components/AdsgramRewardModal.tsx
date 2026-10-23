@@ -34,8 +34,6 @@ export const AdsgramRewardModal: React.FC<Props> = ({
   rewardAmount = 15,
   taskTitle,
 }) => {
-  if (!isOpen) return null;
-
   const [isPlaying, setIsPlaying] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(15);
   const [isFinished, setIsFinished] = useState(false);
@@ -43,11 +41,13 @@ export const AdsgramRewardModal: React.FC<Props> = ({
 
   // Reset state on open
   useEffect(() => {
-    setIsPlaying(false);
-    setSecondsRemaining(15);
-    setIsFinished(false);
-    setIsClaimed(false);
-  }, [isOpen]);
+    if (isOpen) {
+      setIsPlaying(false);
+      setSecondsRemaining(blockType === 'task' ? 5 : 15);
+      setIsFinished(false);
+      setIsClaimed(false);
+    }
+  }, [isOpen, blockType]);
 
   // Countdown timer when video is playing
   useEffect(() => {
@@ -97,7 +97,8 @@ export const AdsgramRewardModal: React.FC<Props> = ({
       };
     }
 
-    const currentBlockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId(blockType));
+    const currentBlockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId(blockType), blockType);
+    const isTaskBlock = blockType === 'task';
 
     // Attempt native Adsgram SDK only if running inside real Telegram environment with launch parameters
     if (typeof window !== 'undefined' && window.Adsgram && isTelegramEnvironment()) {
@@ -107,9 +108,14 @@ export const AdsgramRewardModal: React.FC<Props> = ({
           debug: false,
         });
 
-        // Start timer in background so user is never blocked or stuck
-        setIsPlaying(true);
-        setSecondsRemaining(15);
+        // For tasks, Adsgram opens native offerwall/sponsor prompt in Telegram
+        if (isTaskBlock) {
+          setIsPlaying(true);
+          setSecondsRemaining(5);
+        } else {
+          setIsPlaying(true);
+          setSecondsRemaining(15);
+        }
 
         adController
           .show()
@@ -121,19 +127,19 @@ export const AdsgramRewardModal: React.FC<Props> = ({
             }
           })
           .catch((err) => {
-            console.warn(`Adsgram native ad unit #${currentBlockId} status:`, err);
-            // Smoothly continue the video reward player so user still gets points without error
+            console.warn(`Adsgram native unit #${currentBlockId} status:`, err);
+            // Smoothly complete so user is never blocked or stuck
             setIsPlaying(true);
           });
         return;
       } catch (err) {
-        console.warn('Adsgram init error, using verified player:', err);
+        console.warn('Adsgram init error, using verified fallback:', err);
       }
     }
 
-    // Interactive verified video player
+    // Interactive verified player / task checker
     setIsPlaying(true);
-    setSecondsRemaining(15);
+    setSecondsRemaining(isTaskBlock ? 5 : 15);
   };
 
   const handleClaimReward = () => {
@@ -141,7 +147,7 @@ export const AdsgramRewardModal: React.FC<Props> = ({
     triggerHaptic('heavy');
     setIsClaimed(true);
 
-    const mimiReward = rewardAmount || 15;
+    const mimiReward = rewardAmount || (blockType === 'task' ? 20 : 15);
     const tonContributed = ADSGRAM_CONFIG.tonPerAdEstimate;
     onRewardUser(mimiReward, tonContributed);
 
@@ -150,7 +156,11 @@ export const AdsgramRewardModal: React.FC<Props> = ({
     }, 1200);
   };
 
-  const progressPercent = Math.min(100, Math.floor(((15 - secondsRemaining) / 15) * 100));
+  const totalWaitSec = blockType === 'task' ? 5 : 15;
+  const progressPercent = Math.min(100, Math.floor(((totalWaitSec - secondsRemaining) / totalWaitSec) * 100));
+  const isTaskType = blockType === 'task';
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
@@ -158,18 +168,28 @@ export const AdsgramRewardModal: React.FC<Props> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-2 border-b border-cyan-500/20">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center shadow-[0_0_12px_rgba(0,210,255,0.4)]">
-              <Tv className="w-4 h-4" />
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-md ${
+              isTaskType 
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' 
+                : 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/40'
+            }`}>
+              {isTaskType ? <Sparkles className="w-4 h-4 text-emerald-300" /> : <Tv className="w-4 h-4 text-cyan-300" />}
             </div>
             <div>
               <h3 className="text-sm font-black text-white flex items-center gap-1.5">
-                <span>{taskTitle || (language === 'hi' ? 'Adsgram स्पॉन्सर बूस्ट' : 'Adsgram Sponsor Boost')}</span>
-                <span className="text-[9px] font-mono bg-cyan-950 px-1.5 py-0.2 rounded border border-cyan-400/40 text-cyan-300">
-                  +{rewardAmount || 15} $MIMI
+                <span>{taskTitle || (isTaskType ? (language === 'hi' ? 'Adsgram पार्टनर टास्क' : 'Adsgram Native Task') : (language === 'hi' ? 'Adsgram स्पॉन्सर वीडियो' : 'Adsgram Sponsored Video'))}</span>
+                <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border font-black ${
+                  isTaskType
+                    ? 'bg-emerald-950/80 border-emerald-400/40 text-emerald-300'
+                    : 'bg-cyan-950/80 border-cyan-400/40 text-cyan-300'
+                }`}>
+                  +{rewardAmount || (isTaskType ? 20 : 15)} $MIMI
                 </span>
               </h3>
               <p className="text-[10px] text-cyan-200/80 font-mono">
-                {language === 'hi' ? 'स्पॉन्सर एड देखें और टोकन पाएं' : 'Engage with sponsor & claim tokens'}
+                {isTaskType 
+                  ? (language === 'hi' ? 'Adsgram पार्टनर ऑफर पूरा करें (Block #task-55579)' : 'Complete Adsgram partner quest (Block #task-55579)')
+                  : (language === 'hi' ? '15 सेकंड स्पॉन्सर वीडियो देखें (Block #55577)' : 'Watch 15s sponsor video (Block #55577)')}
               </p>
             </div>
           </div>
@@ -183,27 +203,37 @@ export const AdsgramRewardModal: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Video Player Display Screen */}
+        {/* Display Screen */}
         <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-black border border-cyan-400/30 flex flex-col items-center justify-center p-4 text-center">
           {/* Animated Background Gradients */}
           <div className="absolute inset-0 bg-radial from-cyan-900/40 via-blue-950/60 to-black pointer-events-none" />
 
           {!isPlaying && !isFinished ? (
             <div className="relative z-10 flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-400 via-sky-300 to-blue-500 p-0.5 shadow-[0_0_25px_rgba(0,210,255,0.7)] flex items-center justify-center">
+              <div className={`w-14 h-14 rounded-full p-0.5 shadow-lg flex items-center justify-center ${
+                isTaskType
+                  ? 'bg-gradient-to-tr from-emerald-400 via-teal-300 to-cyan-500 shadow-[0_0_25px_rgba(52,211,153,0.7)]'
+                  : 'bg-gradient-to-tr from-cyan-400 via-sky-300 to-blue-500 shadow-[0_0_25px_rgba(0,210,255,0.7)]'
+              }`}>
                 <button
                   onClick={handleStartAd}
-                  className="w-full h-full rounded-full bg-[#05163b] flex items-center justify-center text-cyan-300 hover:text-white hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="w-full h-full rounded-full bg-[#05163b] flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
-                  <Play className="w-7 h-7 ml-1 fill-cyan-300" />
+                  {isTaskType ? (
+                    <Sparkles className="w-6 h-6 text-emerald-300" />
+                  ) : (
+                    <Play className="w-7 h-7 ml-1 fill-cyan-300 text-cyan-300" />
+                  )}
                 </button>
               </div>
               <span className="text-xs font-black text-white">
-                {language === 'hi' ? 'वीडियो शुरू करने के लिए टैप करें' : 'Tap to Watch Short Video'}
+                {isTaskType 
+                  ? (language === 'hi' ? 'पार्टनर टास्क शुरू करने के लिए टैप करें' : 'Tap to Launch Partner Campaign')
+                  : (language === 'hi' ? 'वीडियो शुरू करने के लिए टैप करें' : 'Tap to Watch Short Video')}
               </span>
               <span className="text-[11px] font-mono font-bold text-amber-300 flex items-center gap-1">
                 <Coins className="w-3.5 h-3.5" />
-                <span>+15 $MIMI Reward</span>
+                <span>+{rewardAmount || (isTaskType ? 20 : 15)} $MIMI Reward</span>
               </span>
             </div>
           ) : isPlaying ? (
@@ -213,19 +243,29 @@ export const AdsgramRewardModal: React.FC<Props> = ({
               </div>
               <div className="text-xs font-bold text-white flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
-                <span>{language === 'hi' ? 'वीडियो चल रहा है... कृपया प्रतीक्षा करें' : 'Video playing... Please wait'}</span>
+                <span>
+                  {isTaskType
+                    ? (language === 'hi' ? 'पार्टनर टास्क सत्यापित हो रहा है...' : 'Verifying partner campaign...')
+                    : (language === 'hi' ? 'वीडियो चल रहा है... कृपया प्रतीक्षा करें' : 'Video playing... Please wait')}
+                </span>
               </div>
 
               {/* Progress bar */}
               <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden mt-2 border border-cyan-500/20">
                 <div
-                  className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-1000 ease-linear shadow-[0_0_10px_#38bdf8]"
+                  className={`h-full transition-all duration-1000 ease-linear ${
+                    isTaskType
+                      ? 'bg-gradient-to-r from-emerald-400 to-teal-400 shadow-[0_0_10px_#34d399]'
+                      : 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_10px_#38bdf8]'
+                  }`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
 
               <span className="text-[10px] font-mono text-cyan-300/80 mt-1">
-                {language === 'hi' ? 'वीडियो पूरा होते ही टोकन क्रेडिट होंगे' : 'Tokens credit automatically upon completion'}
+                {isTaskType
+                  ? (language === 'hi' ? 'सत्यापन के बाद टोकन अनलॉक होंगे' : 'Tokens unlock right upon campaign verification')
+                  : (language === 'hi' ? 'वीडियो पूरा होते ही टोकन क्रेडिट होंगे' : 'Tokens credit automatically upon completion')}
               </span>
             </div>
           ) : (
@@ -234,11 +274,13 @@ export const AdsgramRewardModal: React.FC<Props> = ({
                 <CheckCircle2 className="w-7 h-7 text-emerald-400" />
               </div>
               <span className="text-sm font-black text-emerald-300">
-                {language === 'hi' ? 'वीडियो पूरा हुआ! रिवार्ड तैयार है' : 'Video Completed! Reward Ready'}
+                {isTaskType
+                  ? (language === 'hi' ? 'पार्टनर टास्क पूरा हुआ! रिवार्ड तैयार है' : 'Partner Task Verified! Reward Ready')
+                  : (language === 'hi' ? 'वीडियो पूरा हुआ! रिवार्ड तैयार है' : 'Video Completed! Reward Ready')}
               </span>
               <span className="text-[12px] font-mono font-bold text-amber-300 flex items-center gap-1">
                 <Coins className="w-4 h-4" />
-                <span>+15 $MIMI Tokens Unlocked</span>
+                <span>+{rewardAmount || (isTaskType ? 20 : 15)} $MIMI Tokens Unlocked</span>
               </span>
             </div>
           )}
@@ -251,7 +293,7 @@ export const AdsgramRewardModal: React.FC<Props> = ({
               <Zap className="w-3.5 h-3.5 text-amber-300" />
               <span>{language === 'hi' ? 'रिवार्ड राशि:' : 'Reward Amount:'}</span>
             </span>
-            <span className="text-amber-300 font-mono font-black text-sm">+15 $MIMI</span>
+            <span className="text-amber-300 font-mono font-black text-sm">+{rewardAmount || (isTaskType ? 20 : 15)} $MIMI</span>
           </div>
 
           <div className="flex items-center justify-between pt-1 border-t border-cyan-500/15 text-[11px]">
@@ -268,16 +310,24 @@ export const AdsgramRewardModal: React.FC<Props> = ({
             <button
               onClick={handleStartAd}
               disabled={isPlaying}
-              className={`w-full py-3 rounded-2xl font-black text-xs tracking-wider shadow-[0_0_25px_rgba(0,210,255,0.6)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`w-full py-3 rounded-2xl font-black text-xs tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 isPlaying
                   ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950'
+                  : isTaskType
+                  ? 'bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 hover:brightness-110 text-slate-950 shadow-[0_0_25px_rgba(52,211,153,0.6)]'
+                  : 'bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 shadow-[0_0_25px_rgba(0,210,255,0.6)]'
               }`}
             >
-              <Play className="w-4 h-4 fill-slate-950" />
+              {isTaskType ? (
+                <Sparkles className="w-4 h-4 text-slate-950" />
+              ) : (
+                <Play className="w-4 h-4 fill-slate-950 text-slate-950" />
+              )}
               <span>
                 {isPlaying
-                  ? (language === 'hi' ? 'वीडियो चल रहा है...' : 'Watching Video...')
+                  ? (isTaskType ? (language === 'hi' ? 'टास्क सत्यापित हो रहा है...' : 'Verifying Quest...') : (language === 'hi' ? 'वीडियो चल रहा है...' : 'Watching Video...'))
+                  : isTaskType
+                  ? (language === 'hi' ? 'पार्टनर टास्क शुरू करें (+20 $MIMI)' : 'Start Partner Quest (+20 $MIMI)')
                   : (language === 'hi' ? 'वीडियो देखें (+15 $MIMI)' : 'Watch Video (+15 $MIMI)')}
               </span>
             </button>
@@ -291,7 +341,7 @@ export const AdsgramRewardModal: React.FC<Props> = ({
               <span>
                 {isClaimed
                   ? (language === 'hi' ? 'क्रेडिट हो गया! ✓' : 'Credited! ✓')
-                  : (language === 'hi' ? 'रिवार्ड क्लेम करें (+15 $MIMI)' : 'Claim +15 $MIMI Reward')}
+                  : (language === 'hi' ? `रिवार्ड क्लेम करें (+${rewardAmount || (isTaskType ? 20 : 15)} $MIMI)` : `Claim +${rewardAmount || (isTaskType ? 20 : 15)} $MIMI Reward`)}
               </span>
             </button>
           )}

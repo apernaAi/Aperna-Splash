@@ -244,28 +244,12 @@ const DEFAULT_TASKS: AirdropTask[] = [
     subType: 'video',
     title: 'Adsgram रिवॉर्डेड वीडियो देखें (+15 $MIMI)',
     titleEn: 'Watch Adsgram Rewarded Video (+15 $MIMI)',
-    description: '15 सेकंड का वीडियो विज्ञापन देखें, 15 $MIMI टोकन कमाएं और DEX लिक्विडिटी बूस्ट करें।',
-    descriptionEn: 'Watch a 15-second rewarded video ad to earn 15 $MIMI and boost DEX liquidity.',
+    description: '15 सेकंड का वीडियो विज्ञापन देखें, 15 $MIMI टोकन कमाएं और DEX लिक्विडिटी बूस्ट करें। (Block #55577)',
+    descriptionEn: 'Watch a 15-second rewarded video ad to earn 15 $MIMI and boost DEX liquidity. (Block #55577)',
     reward: 15,
     iconType: 'adsgram',
     isAdsgramTask: true,
     adsgramBlockType: 'reward',
-    verificationType: 'ad_watched',
-    isCompleted: false,
-    isDailyRepeatable: true,
-  },
-  {
-    id: 'adsgram-interstitial-daily',
-    category: 'adsgram',
-    subType: 'other',
-    title: 'Adsgram इंटरैक्टिव बूस्ट विज्ञापन (+15 $MIMI)',
-    titleEn: 'Adsgram Interactive Sponsor Boost (+15 $MIMI)',
-    description: 'फुल-स्क्रीन इंटरैक्टिव स्पॉन्सर एड देखें और 15 $MIMI का अतिरिक्त बोनस पाएं। (ऐप ओपन पर ऑटो)',
-    descriptionEn: 'View interactive full-screen sponsor boost and claim 15 $MIMI bonus. (Auto on app open)',
-    reward: 15,
-    iconType: 'adsgram',
-    isAdsgramTask: true,
-    adsgramBlockType: 'interstitial',
     verificationType: 'ad_watched',
     isCompleted: false,
     isDailyRepeatable: true,
@@ -276,24 +260,8 @@ const DEFAULT_TASKS: AirdropTask[] = [
     subType: 'partner',
     title: 'Adsgram पार्टनर स्पॉन्सर टास्क (+20 $MIMI)',
     titleEn: 'Adsgram Native Partner Campaign (+20 $MIMI)',
-    description: 'पार्टनर एड कैंपेन एक्सप्लोर करें और 20 $MIMI टोकन रिवॉर्ड हासिल करें। (ब्लॉक #55579)',
-    descriptionEn: 'Explore Adsgram native sponsor offer and earn 20 $MIMI token reward. (Block #55579)',
-    reward: 20,
-    iconType: 'adsgram',
-    isAdsgramTask: true,
-    adsgramBlockType: 'task',
-    verificationType: 'ad_watched',
-    isCompleted: false,
-    isDailyRepeatable: true,
-  },
-  {
-    id: 'adsgram-music-sponsor',
-    category: 'adsgram',
-    subType: 'partner',
-    title: 'Adsgram Web3 म्यूजिक स्पॉन्सर (+20 $MIMI)',
-    titleEn: 'Adsgram Web3 Music Sponsor Boost (+20 $MIMI)',
-    description: 'वेब3 म्यूजिक स्पॉन्सर कैंपेन देखें और 20 $MIMI तुरंत अनलॉक करें।',
-    descriptionEn: 'Watch Web3 Music sponsor campaign & unlock 20 $MIMI instantly.',
+    description: 'Adsgram का आधिकारिक पार्टनर टास्क पूरा करें और 20 $MIMI टोकन हासिल करें। (Block #task-55579)',
+    descriptionEn: 'Complete Adsgram native partner campaign to earn 20 $MIMI token reward. (Block #task-55579)',
     reward: 20,
     iconType: 'adsgram',
     isAdsgramTask: true,
@@ -583,7 +551,7 @@ export default function App() {
 
   const [tasks, setTasks] = useState<AirdropTask[]>(() => {
     try {
-      const saved = localStorage.getItem('music_mimi_tasks_v16_native_quests') || localStorage.getItem('music_mimi_tasks_v15_adsgram_triple') || localStorage.getItem('music_mimi_tasks_v12_math_quiz_30');
+      const saved = localStorage.getItem('music_mimi_tasks_v17_clean_quests') || localStorage.getItem('music_mimi_tasks_v16_native_quests');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -637,7 +605,7 @@ export default function App() {
   }, [stats]);
 
   useEffect(() => {
-    localStorage.setItem('music_mimi_tasks_v16_native_quests', JSON.stringify(tasks));
+    localStorage.setItem('music_mimi_tasks_v17_clean_quests', JSON.stringify(tasks));
   }, [tasks]);
 
   useEffect(() => {
@@ -859,7 +827,7 @@ export default function App() {
           return;
         }
 
-        const blockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId('interstitial'));
+        const blockId = sanitizeAdsgramBlockId(getActiveAdsgramBlockId('interstitial'), 'interstitial');
 
         // Intercept and suppress Telegram WebApp raw popups for ad moderation messages
         if ((window as any).Telegram?.WebApp?.showAlert) {
@@ -1288,10 +1256,8 @@ export default function App() {
         onRewardUser={(reward, ton) => handleRewardAdsgram(reward, ton, selectedAdTask?.id)}
         language={language}
         blockType={
-          selectedAdTask?.id === 'adsgram-task-native'
+          selectedAdTask?.adsgramBlockType === 'task' || selectedAdTask?.id === 'adsgram-task-native'
             ? 'task'
-            : selectedAdTask?.id === 'adsgram-interstitial-daily'
-            ? 'interstitial'
             : 'reward'
         }
         rewardAmount={selectedAdTask?.reward || 15}

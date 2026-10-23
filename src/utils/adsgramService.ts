@@ -12,7 +12,7 @@ export const ADSGRAM_CONFIG = {
   defaultBlocks: {
     reward: '55577',
     interstitial: 'int-55578',
-    task: '55579',
+    task: 'task-55579',
   },
   primaryBlockId: '55577',
   defaultBlockId: '55577',
@@ -70,51 +70,73 @@ export function getAdsCooldownStatus(stats: {
 }
 
 /**
- * Sanitizes blockId to ensure Adsgram SDK compatibility:
- * Must be pure digits OR start with 'int-' followed by digits.
- * Automatically strips invalid prefixes like 'task-'.
+ * Sanitizes blockId strictly according to Adsgram SDK specification:
+ * - 'task' blocks MUST start with 'task-' (e.g. 'task-55579')
+ * - 'interstitial' blocks MUST start with 'int-' (e.g. 'int-55578')
+ * - 'reward' blocks MUST be digits only (e.g. '55577')
  */
-export function sanitizeAdsgramBlockId(raw: string): string {
-  if (!raw) return '55577';
-  const trimmed = String(raw).trim();
-  if (trimmed.startsWith('task-')) {
-    return trimmed.replace(/^task-/, '');
+export function sanitizeAdsgramBlockId(raw: string, type?: AdsgramBlockType | string): string {
+  const normType = type === 'task' ? 'task' : type === 'interstitial' ? 'interstitial' : type === 'reward' ? 'reward' : undefined;
+
+  if (!raw) {
+    if (normType === 'task') return 'task-55579';
+    if (normType === 'interstitial') return 'int-55578';
+    return '55577';
   }
-  return trimmed;
+
+  const trimmed = String(raw).trim();
+
+  // Task blocks: Adsgram SDK explicitly enforces: blockId MUST start with 'task-'
+  if (normType === 'task' || trimmed.startsWith('task-')) {
+    const rawNumber = trimmed.replace(/^task-/, '').replace(/[^0-9]/g, '') || '55579';
+    return `task-${rawNumber}`;
+  }
+
+  // Interstitial blocks: Must start with 'int-'
+  if (normType === 'interstitial' || trimmed.startsWith('int-')) {
+    const rawNumber = trimmed.replace(/^int-/, '').replace(/[^0-9]/g, '') || '55578';
+    return `int-${rawNumber}`;
+  }
+
+  // Rewarded Video: digits only
+  const digitsOnly = trimmed.replace(/^(task-|int-)/, '').replace(/[^0-9]/g, '');
+  return digitsOnly || '55577';
 }
 
 /**
  * Returns active block ID for specified block type (reward | interstitial | task)
  */
 export function getActiveAdsgramBlockId(type: AdsgramBlockType | string = 'reward'): string {
-  const normalizedType = (type === 'interstitial' || type === 'task') ? type : 'reward';
+  const normalizedType: AdsgramBlockType = (type === 'interstitial' || type === 'task') ? type : 'reward';
   
   if (typeof import.meta !== 'undefined') {
     if (normalizedType === 'reward' && import.meta.env?.VITE_ADSGRAM_REWARD_BLOCK_ID) {
-      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID));
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_REWARD_BLOCK_ID), normalizedType);
     }
     if (normalizedType === 'interstitial' && import.meta.env?.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID) {
-      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID));
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_INTERSTITIAL_BLOCK_ID), normalizedType);
     }
     if (normalizedType === 'task' && import.meta.env?.VITE_ADSGRAM_TASK_BLOCK_ID) {
-      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_TASK_BLOCK_ID));
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_TASK_BLOCK_ID), normalizedType);
     }
-    if (import.meta.env?.VITE_ADSGRAM_BLOCK_ID) {
-      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_BLOCK_ID));
+    if (import.meta.env?.VITE_ADSGRAM_BLOCK_ID && normalizedType === 'reward') {
+      return sanitizeAdsgramBlockId(String(import.meta.env.VITE_ADSGRAM_BLOCK_ID), normalizedType);
     }
   }
 
   if (typeof window !== 'undefined') {
     const saved = window.localStorage.getItem(`mimi_custom_adsgram_block_${normalizedType}`);
-    if (saved && saved.trim()) return sanitizeAdsgramBlockId(saved);
+    if (saved && saved.trim()) return sanitizeAdsgramBlockId(saved, normalizedType);
 
-    // Fallback legacy key
-    const legacy = window.localStorage.getItem('mimi_custom_adsgram_block_id');
-    if (legacy && legacy.trim()) return sanitizeAdsgramBlockId(legacy);
+    // Fallback legacy key only for reward
+    if (normalizedType === 'reward') {
+      const legacy = window.localStorage.getItem('mimi_custom_adsgram_block_id');
+      if (legacy && legacy.trim()) return sanitizeAdsgramBlockId(legacy, normalizedType);
+    }
   }
 
   const rawDefault = ADSGRAM_CONFIG.defaultBlocks[normalizedType] || ADSGRAM_CONFIG.defaultBlockId;
-  return sanitizeAdsgramBlockId(rawDefault);
+  return sanitizeAdsgramBlockId(rawDefault, normalizedType);
 }
 
 /**
@@ -131,9 +153,9 @@ export function setActiveAdsgramBlockId(
 
   if (maybeId !== undefined) {
     type = (typeOrId === 'interstitial' || typeOrId === 'task') ? typeOrId : 'reward';
-    id = sanitizeAdsgramBlockId(maybeId);
+    id = sanitizeAdsgramBlockId(maybeId, type);
   } else {
-    id = sanitizeAdsgramBlockId(String(typeOrId || ''));
+    id = sanitizeAdsgramBlockId(String(typeOrId || ''), 'reward');
   }
 
   if (!id) {

@@ -25,8 +25,6 @@ export const ZPlusSecurityModal: React.FC<Props> = ({
   language,
   stats,
 }) => {
-  if (!isOpen) return null;
-
   const [securityStatus, setSecurityStatus] = useState<ZPlusSecurityStatus>(() =>
     evaluateZPlusSecurity(stats)
   );
@@ -42,6 +40,8 @@ export const ZPlusSecurityModal: React.FC<Props> = ({
       playClaimRewardSound();
     }, 800);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md animate-fadeIn select-none">

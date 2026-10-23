@@ -377,54 +377,7 @@ export const TasksView: React.FC<Props> = ({
 
   const adCooldown = getAdsCooldownStatus(stats);
 
-  const handleOpenAdByBlockType = (blockType: 'reward' | 'interstitial' | 'task') => {
-    playTapSound();
-    const cooldown = getAdsCooldownStatus(stats);
-    if (!cooldown.canWatch) {
-      setCooldownAlert(
-        language === 'hi'
-          ? `8 घंटे में अधिकतम 10 विज्ञापन सीमा पूरी हो चुकी है। कृपया ${cooldown.formattedCooldown} बाद पुनः देखें।`
-          : `10/10 ads limit reached for this 8-hour period. Next batch in ${cooldown.formattedCooldown}.`
-      );
-      triggerHaptic('medium');
-      return;
-    }
-    const matchingTask = tasks.find(
-      (t) =>
-        t.adsgramBlockType === blockType ||
-        (blockType === 'reward' && t.id === 'adsgram-video-daily') ||
-        (blockType === 'interstitial' && t.id === 'adsgram-interstitial-daily') ||
-        (blockType === 'task' && t.id === 'adsgram-task-native')
-    );
-    if (onOpenAdsgram) {
-      onOpenAdsgram(
-        matchingTask || {
-          id: `adsgram-${blockType}-daily`,
-          category: 'adsgram',
-          title:
-            blockType === 'task'
-              ? 'Adsgram पार्टनर टास्क (+20 $MIMI)'
-              : blockType === 'interstitial'
-              ? 'Adsgram इंटरैक्टिव बूस्ट (+15 $MIMI)'
-              : 'Adsgram रिवॉर्डेड वीडियो (+15 $MIMI)',
-          titleEn:
-            blockType === 'task'
-              ? 'Adsgram Native Partner Campaign (+20 $MIMI)'
-              : blockType === 'interstitial'
-              ? 'Adsgram Interactive Boost (+15 $MIMI)'
-              : 'Watch Adsgram Rewarded Video (+15 $MIMI)',
-          description: 'Sponsor ad',
-          descriptionEn: 'Sponsor ad',
-          reward: blockType === 'task' ? 20 : 15,
-          iconType: 'adsgram',
-          isAdsgramTask: true,
-          adsgramBlockType: blockType,
-          verificationType: 'ad_watched',
-          isCompleted: false,
-        }
-      );
-    }
-  };
+
 
   // Helper for task modal timer calculation
   const getTaskRemainingSeconds = (task: AirdropTask | null) => {
@@ -681,183 +634,18 @@ export const TasksView: React.FC<Props> = ({
                 </div>
               </div>
 
-              {/* 3-in-1 Adsgram Tasks Hub */}
-              <div className="w-full rounded-3xl p-4 bg-gradient-to-br from-[#031d47] via-[#052b66] to-[#041a3d] border-2 border-cyan-400/40 shadow-[0_8px_30px_rgba(0,180,255,0.25)] flex flex-col gap-3">
-                {/* Header with Title & 8-Hour 10-Ads Limit Counter */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-cyan-500/20">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-400 via-sky-300 to-blue-500 flex items-center justify-center text-slate-950 shadow-[0_0_12px_rgba(0,210,255,0.6)] shrink-0">
-                      <Tv className="w-5 h-5 text-slate-950" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
-                          📺 ADSGRAM SPONSOR HUB
-                        </span>
-                        <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-400/30">
-                          {language === 'hi' ? '8 घंटे में 10 विज्ञापन' : 'Max 10 Ads / 8h'}
-                        </span>
-                      </div>
-                      <h4 className="text-sm font-black text-white mt-0.5">
-                        {language === 'hi' ? 'स्पॉन्सर एड्स देखें और $MIMI टोकन कमाएं' : 'Watch Sponsor Ads & Earn $MIMI'}
-                      </h4>
-                    </div>
+              {/* Cooldown Alert Toast if user tapped when full */}
+              {cooldownAlert && (
+                <div className="p-3 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs flex items-center justify-between gap-2 animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>{cooldownAlert}</span>
                   </div>
-
-                  {/* Quota & Cooldown Indicator */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2 bg-black/40 px-3 py-1.5 rounded-xl border border-cyan-500/20">
-                    <span className="text-[11px] font-mono text-cyan-200">
-                      {adCooldown.canWatch
-                        ? (language === 'hi' ? `शेष: ${adCooldown.adsRemaining}/10` : `Left: ${adCooldown.adsRemaining}/10`)
-                        : (language === 'hi' ? 'सीमा समाप्त (10/10)' : 'Limit Reached (10/10)')}
-                    </span>
-                    {adCooldown.canWatch ? (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                        ● {language === 'hi' ? 'सक्रिय' : 'Active'}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30 animate-pulse">
-                        ⏳ {adCooldown.formattedCooldown}
-                      </span>
-                    )}
-                  </div>
+                  <button onClick={() => setCooldownAlert(null)} className="p-1 hover:text-white cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-
-                {/* Cooldown Alert Toast if user tapped when full */}
-                {cooldownAlert && (
-                  <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs flex items-center justify-between gap-2 animate-fadeIn">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
-                      <span>{cooldownAlert}</span>
-                    </div>
-                    <button onClick={() => setCooldownAlert(null)} className="p-1 hover:text-white cursor-pointer">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                {/* 3 Real Clickable Adsgram Tasks Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* 1. Rewarded Video Ad */}
-                  <div className="p-3 rounded-2xl bg-[#061e47]/80 border border-cyan-500/30 hover:border-cyan-400/60 transition-all flex flex-col justify-between gap-2.5">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-400/20 text-cyan-300 font-bold">
-                          📺 VIDEO
-                        </span>
-                        <span className="text-xs font-mono font-black text-amber-300">
-                          +15 $MIMI
-                        </span>
-                      </div>
-                      <h5 className="text-xs font-extrabold text-white mt-1.5">
-                        {language === 'hi' ? 'रिवॉर्डेड वीडियो' : 'Rewarded Video'}
-                      </h5>
-                      <p className="text-[10px] text-cyan-200/70 font-mono mt-0.5">
-                        {language === 'hi' ? '15 सेकंड का वीडियो एड देखें' : 'Watch 15s video ad'}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => handleOpenAdByBlockType('reward')}
-                      disabled={!adCooldown.canWatch}
-                      className={`w-full py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        adCooldown.canWatch
-                          ? 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 text-slate-950 active:scale-95 shadow-[0_0_12px_rgba(0,210,255,0.4)]'
-                          : 'bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
-                      }`}
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>
-                        {adCooldown.canWatch
-                          ? (language === 'hi' ? 'वीडियो देखें' : 'Watch Video')
-                          : (language === 'hi' ? 'प्रतीक्षा करें' : 'Cooldown')}
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* 2. Interstitial Boost Ad */}
-                  <div className="p-3 rounded-2xl bg-[#061e47]/80 border border-cyan-500/30 hover:border-cyan-400/60 transition-all flex flex-col justify-between gap-2.5">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-400/20 text-sky-300 font-bold">
-                          ⚡ BOOST
-                        </span>
-                        <span className="text-xs font-mono font-black text-amber-300">
-                          +15 $MIMI
-                        </span>
-                      </div>
-                      <h5 className="text-xs font-extrabold text-white mt-1.5">
-                        {language === 'hi' ? 'इंटरैक्टिव बूस्ट' : 'Interactive Boost'}
-                      </h5>
-                      <p className="text-[10px] text-cyan-200/70 font-mono mt-0.5">
-                        {language === 'hi' ? 'स्पॉन्सर बूस्ट एड देखें' : 'View sponsor boost ad'}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => handleOpenAdByBlockType('interstitial')}
-                      disabled={!adCooldown.canWatch}
-                      className={`w-full py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        adCooldown.canWatch
-                          ? 'bg-gradient-to-r from-sky-400 to-indigo-500 hover:brightness-110 text-slate-950 active:scale-95 shadow-[0_0_12px_rgba(56,189,248,0.4)]'
-                          : 'bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
-                      }`}
-                    >
-                      <Zap className="w-3.5 h-3.5 fill-current" />
-                      <span>
-                        {adCooldown.canWatch
-                          ? (language === 'hi' ? 'बूस्ट देखें' : 'Open Boost')
-                          : (language === 'hi' ? 'प्रतीक्षा करें' : 'Cooldown')}
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* 3. Native Task Campaign */}
-                  <div className="p-3 rounded-2xl bg-[#061e47]/80 border border-cyan-500/30 hover:border-cyan-400/60 transition-all flex flex-col justify-between gap-2.5">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-bold">
-                          🎯 CAMPAIGN
-                        </span>
-                        <span className="text-xs font-mono font-black text-amber-300">
-                          +20 $MIMI
-                        </span>
-                      </div>
-                      <h5 className="text-xs font-extrabold text-white mt-1.5">
-                        {language === 'hi' ? 'पार्टनर टास्क' : 'Partner Task'}
-                      </h5>
-                      <p className="text-[10px] text-cyan-200/70 font-mono mt-0.5">
-                        {language === 'hi' ? 'पार्टनर टास्क पूरा करें' : 'Complete sponsor task'}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => handleOpenAdByBlockType('task')}
-                      disabled={!adCooldown.canWatch}
-                      className={`w-full py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        adCooldown.canWatch
-                          ? 'bg-gradient-to-r from-emerald-400 to-teal-500 hover:brightness-110 text-slate-950 active:scale-95 shadow-[0_0_12px_rgba(52,211,153,0.4)]'
-                          : 'bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
-                      }`}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>
-                        {adCooldown.canWatch
-                          ? (language === 'hi' ? 'टास्क करें (+20)' : 'Explore (+20)')
-                          : (language === 'hi' ? 'प्रतीक्षा करें' : 'Cooldown')}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Footer DEX Liquidity notice */}
-                <div className="flex items-center justify-between text-[10px] text-cyan-300/70 font-mono pt-1 border-t border-cyan-500/15">
-                  <span>💎 100% Ad Revenue → STON.fi DEX Liquidity Pool</span>
-                  <span className="text-amber-300 font-bold">
-                    {stats.adsWatchedCount ? `${stats.adsWatchedCount} ${language === 'hi' ? 'कुल देखे गए' : 'Total Watched'}` : ''}
-                  </span>
-                </div>
-              </div>
+              )}
 
               {/* Filter Segmented Tabs */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -921,8 +709,16 @@ export const TasksView: React.FC<Props> = ({
                 {/* Left Platform Icon */}
                 <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[#0284c7]/20 border border-cyan-400/30 text-white shadow-sm overflow-hidden">
                   {task.iconType === 'adsgram' && (
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 flex items-center justify-center text-slate-950 shadow-[0_0_15px_rgba(0,210,255,0.6)] border border-cyan-300">
-                      <Tv className="w-4 h-4 text-slate-950" />
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-slate-950 border ${
+                      task.adsgramBlockType === 'task'
+                        ? 'bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-500 border-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.6)]'
+                        : 'bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 border-cyan-300 shadow-[0_0_15px_rgba(0,210,255,0.6)]'
+                    }`}>
+                      {task.adsgramBlockType === 'task' ? (
+                        <Sparkles className="w-4 h-4 text-slate-950" />
+                      ) : (
+                        <Tv className="w-4 h-4 text-slate-950" />
+                      )}
                     </div>
                   )}
                   {task.iconType === 'youtube' && (
@@ -998,7 +794,21 @@ export const TasksView: React.FC<Props> = ({
                       <span>+{task.reward.toLocaleString()} $MIMI</span>
                     </span>
 
-                    {task.subType === 'video' && (
+                    {task.isAdsgramTask && task.adsgramBlockType === 'task' && (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 font-mono">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        <span>Adsgram Task (task-55579)</span>
+                      </span>
+                    )}
+
+                    {task.isAdsgramTask && task.adsgramBlockType === 'reward' && (
+                      <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 font-mono">
+                        <Tv className="w-2.5 h-2.5" />
+                        <span>{language === 'hi' ? '15s स्पॉन्सर वीडियो' : '15s Sponsor Video'}</span>
+                      </span>
+                    )}
+
+                    {task.subType === 'video' && !task.isAdsgramTask && (
                       <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                         <Play className="w-2.5 h-2.5 fill-current" />
                         {language === 'hi' ? 'वॉच + Like + Comment' : 'Watch + Like + Comment'}
@@ -1051,14 +861,22 @@ export const TasksView: React.FC<Props> = ({
                       }}
                       className={`px-3.5 py-1.5 rounded-full text-xs font-black shadow-sm active:scale-95 transition-all cursor-pointer flex items-center gap-1 ${
                         adCooldown.canWatch
-                          ? 'bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 text-slate-950 hover:brightness-110 shadow-[0_0_12px_rgba(0,210,255,0.5)]'
+                          ? task.adsgramBlockType === 'task'
+                            ? 'bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 text-slate-950 hover:brightness-110 shadow-[0_0_12px_rgba(52,211,153,0.5)]'
+                            : 'bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 text-slate-950 hover:brightness-110 shadow-[0_0_12px_rgba(0,210,255,0.5)]'
                           : 'bg-slate-800 text-slate-400 border border-slate-700 font-mono text-[10px]'
                       }`}
                     >
-                      <Play className="w-3 h-3 fill-current" />
+                      {task.adsgramBlockType === 'task' ? (
+                        <Sparkles className="w-3 h-3" />
+                      ) : (
+                        <Play className="w-3 h-3 fill-current" />
+                      )}
                       <span>
                         {adCooldown.canWatch
-                          ? (language === 'hi' ? 'देखें' : 'Watch')
+                          ? task.adsgramBlockType === 'task'
+                            ? (language === 'hi' ? 'टास्क करें' : 'Start')
+                            : (language === 'hi' ? 'देखें' : 'Watch')
                           : (adCooldown.formattedCooldown || 'Cooldown')}
                       </span>
                     </button>
