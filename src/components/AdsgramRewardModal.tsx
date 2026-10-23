@@ -10,7 +10,7 @@ import {
   Zap
 } from 'lucide-react';
 import { UserStats, Language } from '../types/airdrop.ts';
-import { ADSGRAM_CONFIG, getActiveAdsgramBlockId } from '../utils/adsgramService.ts';
+import { ADSGRAM_CONFIG, getActiveAdsgramBlockId, setActiveAdsgramBlockId } from '../utils/adsgramService.ts';
 import { playClaimRewardSound, playTapSound, triggerHaptic } from '../utils/audioEngine.ts';
 
 interface Props {
@@ -34,6 +34,9 @@ export const AdsgramRewardModal: React.FC<Props> = ({
   const [secondsRemaining, setSecondsRemaining] = useState(15);
   const [isFinished, setIsFinished] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
+  const [isEditingBlockId, setIsEditingBlockId] = useState(false);
+  const [currentBlockId, setCurrentBlockId] = useState(() => getActiveAdsgramBlockId());
+  const [blockInput, setBlockInput] = useState(() => getActiveAdsgramBlockId());
 
   // Reset state on open
   useEffect(() => {
@@ -41,6 +44,10 @@ export const AdsgramRewardModal: React.FC<Props> = ({
     setSecondsRemaining(15);
     setIsFinished(false);
     setIsClaimed(false);
+    setIsEditingBlockId(false);
+    const active = getActiveAdsgramBlockId();
+    setCurrentBlockId(active);
+    setBlockInput(active);
   }, [isOpen]);
 
   // Countdown timer when video is playing
@@ -290,14 +297,63 @@ export const AdsgramRewardModal: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Ad Network & Liquidity Transparency Badge */}
+        {/* Ad Network & Liquidity Transparency Badge & Block ID Selector */}
         <div className="pt-2 text-center border-t border-cyan-500/15">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[10px] text-cyan-300 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Adsgram Unit #{getActiveAdsgramBlockId()}</span>
-            <span className="text-cyan-600">|</span>
-            <span>STON.fi & DeDust LP</span>
-          </div>
+          {isEditingBlockId ? (
+            <div className="p-2.5 rounded-2xl bg-black/60 border border-cyan-400/50 space-y-2 text-left animate-fadeIn">
+              <label className="text-[10px] font-mono font-bold text-cyan-300 block">
+                {language === 'hi' ? 'कस्टम Adsgram Block ID दर्ज करें:' : 'Enter Custom Adsgram Block ID:'}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={blockInput}
+                  onChange={(e) => setBlockInput(e.target.value)}
+                  placeholder="e.g. 53441"
+                  className="w-full bg-[#030d22] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    playTapSound();
+                    setActiveAdsgramBlockId(blockInput.trim());
+                    setCurrentBlockId(getActiveAdsgramBlockId());
+                    setIsEditingBlockId(false);
+                  }}
+                  className="px-3 py-1 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs cursor-pointer"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingBlockId(false)}
+                  className="px-2 py-1 rounded-xl bg-white/10 text-cyan-200 text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  playTapSound();
+                  setIsEditingBlockId(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[10px] text-cyan-300 font-mono hover:border-cyan-400 transition-colors cursor-pointer"
+                title="Tap to change Adsgram Block ID"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Adsgram Unit #{currentBlockId}</span>
+                <span className="text-cyan-600">|</span>
+                <span className="text-cyan-400 underline">Edit ID ✎</span>
+              </button>
+              <span className="text-[9px] text-cyan-300/60 font-mono">
+                100% Ad Revenue routes to STON.fi DEX Pool
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

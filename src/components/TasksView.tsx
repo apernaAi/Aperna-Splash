@@ -33,6 +33,7 @@ import {
   Play,
   AlertCircle,
   CheckCircle2,
+  Tv,
 } from 'lucide-react';
 import { AirdropTask, UserStats, Language } from '../types/airdrop.ts';
 import { ASSETS } from '../assets/assetRegistry.ts';
@@ -49,6 +50,7 @@ interface Props {
   onClaimDailyStreak: (day: number, reward: number) => void;
   onOpenArcade: () => void;
   onOpenWallet: () => void;
+  onOpenAdsgram?: () => void;
   language: Language;
 }
 
@@ -70,6 +72,7 @@ export const TasksView: React.FC<Props> = ({
   onClaimDailyStreak,
   onOpenArcade,
   onOpenWallet,
+  onOpenAdsgram,
   language,
 }) => {
   const [filter, setFilter] = useState<'all' | 'social' | 'partner'>('all');
@@ -207,6 +210,14 @@ export const TasksView: React.FC<Props> = ({
     if (verifyingTaskId) return;
 
     playTapSound();
+
+    // Adsgram Rewarded Video tasks trigger interactive video player & SDK
+    if (task.isAdsgramTask || task.category === 'adsgram' || task.verificationType === 'ad_watched') {
+      if (onOpenAdsgram) {
+        onOpenAdsgram();
+      }
+      return;
+    }
 
     // Math Quiz tasks open the interactive quiz challenge modal
     if (task.category === 'math' || task.quizData) {
@@ -519,6 +530,50 @@ export const TasksView: React.FC<Props> = ({
                 </div>
               </div>
 
+              {/* Adsgram Sponsored Video Ad Task Card */}
+              <div className="w-full rounded-3xl p-4 bg-gradient-to-r from-[#031d47] via-[#052b66] to-[#041a3d] border-2 border-cyan-400/40 shadow-[0_8px_30px_rgba(0,180,255,0.25)] flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-400 via-sky-300 to-blue-500 flex items-center justify-center text-slate-950 shadow-[0_0_15px_rgba(0,210,255,0.6)] shrink-0">
+                      <Tv className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                          📺 ADSGRAM REWARD
+                        </span>
+                        <span className="text-xs font-black text-amber-300 font-mono">
+                          +15 $MIMI
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-black text-white mt-0.5">
+                        {language === 'hi' ? 'स्पॉन्सर वीडियो देखें और तुरंत $MIMI पाएं' : 'Watch Sponsored Video & Earn $MIMI'}
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-cyan-200/80 font-mono pt-1 border-t border-cyan-500/20">
+                  <span>{language === 'hi' ? '15 सेकंड का वीडियो • तुरंत क्रेडिट' : '15-sec Video • Instant Credit'}</span>
+                  <span className="text-emerald-300 font-bold">
+                    {stats.adsWatchedCount ? `${stats.adsWatchedCount} ${language === 'hi' ? 'देखे गए' : 'Watched'}` : (language === 'hi' ? 'दैनिक रिवॉर्ड' : 'Daily Reward')}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => {
+                    playTapSound();
+                    if (onOpenAdsgram) onOpenAdsgram();
+                  }}
+                  className="w-full py-2.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-xs sm:text-sm tracking-wide shadow-[0_4px_20px_rgba(0,210,255,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Play className="w-4 h-4 fill-slate-950" />
+                  <span>
+                    {language === 'hi' ? 'वीडियो विज्ञापन देखें (+15 $MIMI)' : 'Watch Video Ad (+15 $MIMI)'}
+                  </span>
+                </button>
+              </div>
+
               {/* Filter Segmented Tabs */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {[
@@ -579,6 +634,11 @@ export const TasksView: React.FC<Props> = ({
               >
                 {/* Left Platform Icon */}
                 <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[#0284c7]/20 border border-cyan-400/30 text-white shadow-sm overflow-hidden">
+                  {task.iconType === 'adsgram' && (
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 flex items-center justify-center text-slate-950 shadow-[0_0_15px_rgba(0,210,255,0.6)] border border-cyan-300">
+                      <Tv className="w-4 h-4 text-slate-950" />
+                    </div>
+                  )}
                   {task.iconType === 'youtube' && (
                     <div className="w-8 h-8 rounded-xl bg-[#FF0000] flex items-center justify-center text-white shadow-[0_0_15px_rgba(255,0,0,0.5)] border border-red-400/30">
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">

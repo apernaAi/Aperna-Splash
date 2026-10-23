@@ -238,6 +238,21 @@ function createInitialStats(): UserStats {
 const DEFAULT_TASKS: AirdropTask[] = [
   ...MATH_QUIZ_TASKS,
   {
+    id: 'adsgram-video-daily',
+    category: 'adsgram',
+    subType: 'video',
+    title: 'Adsgram स्पॉन्सर वीडियो देखें (+15 $MIMI)',
+    titleEn: 'Watch Adsgram Sponsored Video (+15 $MIMI)',
+    description: 'छोटा वीडियो विज्ञापन देखें, 15 $MIMI कमाएं और STON.fi DEX लिक्विडिटी में योगदान दें।',
+    descriptionEn: 'Watch a short sponsored video ad to earn 15 $MIMI and seed STON.fi DEX liquidity pool.',
+    reward: 15,
+    iconType: 'adsgram',
+    isAdsgramTask: true,
+    verificationType: 'ad_watched',
+    isCompleted: false,
+    isDailyRepeatable: true,
+  },
+  {
     id: 'tg-musicmimi-community',
     category: 'community',
     subType: 'telegram',
@@ -735,6 +750,21 @@ export default function App() {
       liquidityContributedTon: newTonContributed,
     }));
     creditReferralCommission(stats.userId, mimiReward, 'Adsgram').catch(console.error);
+
+    // Automatically complete adsgram-video-daily task
+    const todayStr = getTodayDateString();
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === 'adsgram-video-daily' || t.isAdsgramTask
+          ? {
+              ...t,
+              isCompleted: true,
+              lastCompletedDate: todayStr,
+              lastCompletedTimestamp: Date.now(),
+            }
+          : t
+      )
+    );
   };
 
   // Task Completion Handler
@@ -991,6 +1021,7 @@ export default function App() {
             onClaimDailyStreak={handleClaimDailyStreak}
             onOpenArcade={() => setIsArcadeModalOpen(true)}
             onOpenWallet={() => setIsWalletModalOpen(true)}
+            onOpenAdsgram={() => setIsAdsgramModalOpen(true)}
             language={language}
           />
         )}
